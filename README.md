@@ -174,19 +174,38 @@ ports:
 
 ### Running Tests
 
+**Note:** Tests are excluded from the Docker container by default (production optimization). To run tests:
+
+**Option 1: Build a dev container with tests**
 ```bash
-# Run all tests
-docker exec categorizer pytest
+# Temporarily remove tests/ from .dockerignore
+sed -i '/^tests\//d' .dockerignore
 
-# Run with coverage
+# Rebuild container
+docker compose build
+docker compose up -d
+
+# Run tests
+docker exec categorizer pytest -v
 docker exec categorizer pytest --cov=app --cov-report=html
-
-# Run specific test file
-docker exec categorizer pytest tests/test_auth.py
-
-# Run specific test
-docker exec categorizer pytest tests/test_auth.py::test_login_endpoint_success
 ```
+
+**Option 2: Run tests locally**
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run tests
+pytest -v
+pytest --cov=app --cov-report=html
+```
+
+**Test Coverage:**
+- 33 comprehensive tests covering Phase 1
+- Database schema, indexes, and constraints
+- Authentication flows and sessions
+- CLI commands and services
+- Target: 80%+ overall, 90%+ for auth/user modules
 
 ### Project Structure
 
