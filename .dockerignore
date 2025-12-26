@@ -1,0 +1,43 @@
+# Documentation
+*.md
+docs/
+
+# Git
+.git/
+.gitignore
+
+# Tests
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database (will be mounted as volume)
+data/
+*.db
+
+# Environment
+.env
+.env.example
+
+# OS
+.DS_Store
+Thumbs.db
