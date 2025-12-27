@@ -7,7 +7,7 @@ import getpass
 import sys
 import os
 from app.config import settings
-from app.database import get_db, init_db
+from app.database import get_db_context, init_db
 from app.services.user import create_user
 from app.services.category import import_categories_from_file
 from app.services.backup import backup_database
@@ -49,7 +49,7 @@ def cmd_create_user(args):
         # Initialize database if needed
         init_db()
 
-        with get_db() as db:
+        with get_db_context() as db:
             user_id = create_user(db, username, password)
         print(f"✓ User '{username}' created successfully (ID: {user_id})")
     except ValueError as e:
@@ -68,7 +68,7 @@ def cmd_import_categories(args):
         # Initialize database if needed
         init_db()
 
-        with get_db() as db:
+        with get_db_context() as db:
             count = import_categories_from_file(db, filepath)
         print(f"✓ Imported {count} categories from {filepath}")
     except FileNotFoundError:
@@ -91,6 +91,72 @@ def cmd_backup(args):
         sys.exit(1)
     except Exception as e:
         print(f"Error creating backup: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_reset_password(args):
+    """Reset a user's password"""
+    username = args.username
+
+    # Get password from argument, environment variable, or stdin
+    if args.password:
+        password = args.password
+        print(f"Warning: Passing passwords via command line is insecure", file=sys.stderr)
+    elif os.environ.get('USER_PASSWORD'):
+        password = os.environ.get('USER_PASSWORD')
+    elif not sys.stdin.isatty():
+        # Non-interactive mode (like docker exec without -it)
+        print(f"Error: No password provided. Use --password, USER_PASSWORD env var, or stdin", file=sys.stderr)
+        print(f"Example: docker exec categorizer python -m app.cli reset-password {username} --password newpassword", file=sys.stderr)
+        print(f"Or: docker exec -it categorizer python -m app.cli reset-password {username}", file=sys.stderr)
+        sys.exit(1)
+    else:
+        # Interactive mode
+        try:
+            password = getpass.getpass(f"Enter new password for '{username}': ")
+            password_confirm = getpass.getpass("Confirm new password: ")
+
+            # Check passwords match
+            if password != password_confirm:
+                print("Error: Passwords do not match", file=sys.stderr)
+                sys.exit(1)
+        except (EOFError, KeyboardInterrupt):
+            print("\nError: Password input failed. Use -it flag with docker exec or --password argument", file=sys.stderr)
+            sys.exit(1)
+
+    # Reset password
+    try:
+        # Initialize database if needed
+        init_db()
+
+        with get_db_context() as db:
+            # Check if user exists
+            cursor = db.execute("SELECT id FROM users WHERE username = ?", (username,))
+            user = cursor.fetchone()
+
+            if not user:
+                print(f"Error: User '{username}' not found", file=sys.stderr)
+                sys.exit(1)
+
+            # Validate password
+            if len(password) < 8:
+                print("Error: Password must be at least 8 characters", file=sys.stderr)
+                sys.exit(1)
+
+            # Hash password
+            import bcrypt
+            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+            # Update password
+            db.execute(
+                "UPDATE users SET password_hash = ? WHERE username = ?",
+                (password_hash, username)
+            )
+            db.commit()
+
+        print(f"✓ Password for user '{username}' has been reset successfully")
+    except Exception as e:
+        print(f"Error resetting password: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -138,6 +204,18 @@ def main():
         help='Destination directory for backup (default: /app/data/)'
     )
     backup_parser.set_defaults(func=cmd_backup)
+
+    # reset-password command
+    reset_password_parser = subparsers.add_parser(
+        'reset-password',
+        help='Reset a user\'s password'
+    )
+    reset_password_parser.add_argument('username', help='Username to reset password for')
+    reset_password_parser.add_argument(
+        '--password',
+        help='New password (insecure, visible in process list. Use -it or env var instead)'
+    )
+    reset_password_parser.set_defaults(func=cmd_reset_password)
 
     # Parse arguments
     args = parser.parse_args()

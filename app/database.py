@@ -9,13 +9,41 @@ from typing import Generator
 from app.config import settings
 
 
-@contextmanager
 def get_db() -> Generator[sqlite3.Connection, None, None]:
     """
-    Context manager for database connections
+    Database dependency for FastAPI
+
+    Usage in FastAPI:
+        def endpoint(db: sqlite3.Connection = Depends(get_db)):
+            cursor = db.execute("SELECT * FROM users")
+            result = cursor.fetchall()
+
+    Usage in CLI/scripts:
+        with get_db_context() as db:
+            cursor = db.execute("SELECT * FROM users")
+            result = cursor.fetchall()
+    """
+    conn = sqlite3.connect(settings.DATABASE_PATH)
+    conn.row_factory = sqlite3.Row  # Return rows as dictionaries
+    conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
+
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@contextmanager
+def get_db_context() -> Generator[sqlite3.Connection, None, None]:
+    """
+    Context manager for database connections (for CLI and scripts)
 
     Usage:
-        with get_db() as db:
+        with get_db_context() as db:
             cursor = db.execute("SELECT * FROM users")
             result = cursor.fetchall()
     """
@@ -38,7 +66,7 @@ def init_db() -> None:
     Initialize the database schema
     Creates all tables and indexes (idempotent)
     """
-    with get_db() as db:
+    with get_db_context() as db:
         # Table 1: users
         db.execute("""
             CREATE TABLE IF NOT EXISTS users (
