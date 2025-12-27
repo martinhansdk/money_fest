@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Money Fest - Categorize</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            align-items: flex-start;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 100%;
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .batch-info h1 {
+            font-size: 24px;
+            margin: 0 0 4px 0;
+        }
+
+        .batch-meta {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .progress-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #666;
+            min-width: 120px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .filters {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            background: #f5f5f5;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .bulk-actions {
+            margin-left: auto;
+            display: none;
+            gap: 8px;
+        }
+
+        .bulk-actions.visible {
+            display: flex;
+        }
+
+        .transaction-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .transaction-table thead {
+            background: #f9f9f9;
+        }
+
+        .transaction-table th {
+            text-align: left;
+            padding: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .transaction-table tbody tr {
+            border-top: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .transaction-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .transaction-table tbody tr.selected {
+            background: #e3f2fd;
+        }
+
+        .transaction-table td {
+            padding: 16px;
+            font-size: 14px;
+        }
+
+        .checkbox-cell {
+            width: 40px;
+        }
+
+        .checkbox-cell input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .date-cell {
+            color: #666;
+            width: 120px;
+        }
+
+        .payee-cell {
+            font-weight: 500;
+        }
+
+        .amount-cell {
+            font-weight: 600;
+            width: 120px;
+        }
+
+        .amount-expense {
+            color: #d32f2f;
+        }
+
+        .amount-income {
+            color: #388e3c;
+        }
+
+        .category-cell {
+            color: #667eea;
+            font-weight: 500;
+            width: 200px;
+        }
+
+        .category-empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        .status-cell {
+            width: 40px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-uncategorized {
+            background: #e0e0e0;
+        }
+
+        .status-categorized {
+            background: #4caf50;
+        }
+
+        .category-selector {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 2px solid #667eea;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 1000;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .category-selector.visible {
+            transform: translateY(0);
+        }
+
+        .category-selector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .category-selector-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-selector {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .frequent-categories {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .category-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .category-btn {
+            padding: 10px 16px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .category-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .category-search {
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-results {
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .category-list-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .category-list-item:hover {
+            background: #f9f9f9;
+        }
+
+        .category-drilldown {
+            display: none;
+        }
+
+        .category-drilldown.visible {
+            display: block;
+        }
+
+        .parent-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        .parent-btn {
+            padding: 12px 16px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            min-height: 44px;
+        }
+
+        .parent-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .back-btn {
+            padding: 10px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 16px;
+            min-height: 44px;
+        }
+
+        .note-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .note-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .note-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: white;
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .transaction-table {
+                font-size: 13px;
+            }
+
+            .transaction-table th,
+            .transaction-table td {
+                padding: 12px 8px;
+            }
+
+            .category-cell,
+            .amount-cell {
+                width: auto;
+            }
+
+            .parent-categories {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <div class="batch-info">
+                    <h1 id="batchName">Loading...</h1>
+                    <div class="batch-meta" id="batchMeta"></div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="goBack()">← Back</button>
+                </div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-text" id="progressText">0/0 categorized</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</button>
+                <button class="filter-tab" data-filter="uncategorized" onclick="setFilter('uncategorized')">Uncategorized</button>
+                <button class="filter-tab" data-filter="categorized" onclick="setFilter('categorized')">Categorized</button>
+            </div>
+            <div class="bulk-actions" id="bulkActions">
+                <span id="selectedCount" style="font-size: 14px; color: #666;"></span>
+                <button class="btn btn-secondary" onclick="selectCategory(true)">Categorize Selected</button>
+                <button class="btn btn-secondary" onclick="clearSelection()">Clear</button>
+            </div>
+        </div>
+
+        <div class="transaction-list">
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                        </th>
+                        <th>Date</th>
+                        <th>Payee</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th class="status-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="transactionList">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 60px;">Loading transactions...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Category Selector Modal -->
+    <div class="category-selector" id="categorySelector">
+        <div class="category-selector-header">
+            <div class="category-selector-title">Select Category</div>
+            <button class="close-selector" onclick="closeSelector()">×</button>
+        </div>
+
+        <!-- Frequent Categories -->
+        <div class="frequent-categories" id="frequentSection">
+            <div class="section-title">Frequent</div>
+            <div class="category-buttons" id="frequentCategories"></div>
+        </div>
+
+        <!-- Search -->
+        <div class="category-search">
+            <div class="section-title">Search</div>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search categories..." oninput="searchCategories()">
+            <div class="search-results" id="searchResults"></div>
+        </div>
+
+        <!-- Drill-down -->
+        <div class="category-drilldown" id="drilldownSection">
+            <div class="section-title">All Categories</div>
+            <div id="drilldownContent"></div>
+        </div>
+
+        <!-- Note -->
+        <div class="note-section">
+            <div class="section-title">Note (Optional)</div>
+            <textarea class="note-input" id="noteInput" placeholder="Add a note..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        let batchId = null;
+        let batch = null;
+        let transactions = [];
+        let allCategories = [];
+        let frequentCategories = [];
+        let currentFilter = 'all';
+        let selectedTransactions = new Set();
+        let selectedTransaction = null;
+        let isBulkMode = false;
+
+        // Parse batch ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        batchId = parseInt(urlParams.get('batch'));
+
+        if (!batchId) {
+            alert('No batch ID provided');
+            window.location.href = '/static/batches.html';
+        }
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadBatch();
+            await loadTransactions();
+            await loadCategories();
+            await loadFrequentCategories();
+        });
+
+        async function loadBatch() {
+            try {
+                const response = await fetch(`/batches/${batchId}`, { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load batch');
+
+                batch = await response.json();
+                document.getElementById('batchName').textContent = batch.name;
+                document.getElementById('batchMeta').textContent = `${batch.date_range_start} to ${batch.date_range_end}`;
+                updateProgress();
+            } catch (error) {
+                console.error('Error loading batch:', error);
+                alert('Failed to load batch');
+                window.location.href = '/static/batches.html';
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`/batches/${batchId}/transactions`, { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load transactions');
+
+                transactions = await response.json();
+                renderTransactions();
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                document.getElementById('transactionList').innerHTML = `
+                    <tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">Error loading transactions</td></tr>
+                `;
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/categories', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load categories');
+
+                allCategories = await response.json();
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        async function loadFrequentCategories() {
+            try {
+                const response = await fetch('/categories/frequent?limit=12', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load frequent categories');
+
+                frequentCategories = await response.json();
+                renderFrequentCategories();
+            } catch (error) {
+                console.error('Error loading frequent categories:', error);
+            }
+        }
+
+        function renderTransactions() {
+            const tbody = document.getElementById('transactionList');
+            let filtered = transactions.filter(t => {
+                if (currentFilter === 'uncategorized') return t.status === 'uncategorized';
+                if (currentFilter === 'categorized') return t.status === 'categorized';
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">No transactions found</td></tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(t => `
+                <tr onclick="selectTransaction(${t.id})" class="${selectedTransactions.has(t.id) ? 'selected' : ''}">
+                    <td class="checkbox-cell" onclick="event.stopPropagation()">
+                        <input type="checkbox" ${selectedTransactions.has(t.id) ? 'checked' : ''}
+                               onchange="toggleTransaction(${t.id})">
+                    </td>
+                    <td class="date-cell">${formatDate(t.date)}</td>
+                    <td class="payee-cell">${escapeHtml(t.payee)}</td>
+                    <td class="amount-cell ${t.amount < 0 ? 'amount-expense' : 'amount-income'}">
+                        ${formatAmount(t.amount)}
+                    </td>
+                    <td class="category-cell ${t.category ? '' : 'category-empty'}">
+                        ${t.category || 'Not categorized'}
+                    </td>
+                    <td class="status-cell">
+                        <span class="status-indicator status-${t.status}"></span>
+                    </td>
+                </tr>
+            `).join('');
+
+            updateProgress();
+        }
+
+        function renderFrequentCategories() {
+            const container = document.getElementById('frequentCategories');
+            if (frequentCategories.length === 0) {
+                document.getElementById('frequentSection').style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = frequentCategories.map(cat => `
+                <button class="category-btn" onclick="assignCategory('${cat.full_path}')">
+                    ${escapeHtml(cat.full_path)}
+                </button>
+            `).join('');
+        }
+
+        function searchCategories() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const results = document.getElementById('searchResults');
+
+            if (query.length < 2) {
+                results.innerHTML = '';
+                document.getElementById('drilldownSection').classList.remove('visible');
+                return;
+            }
+
+            const matches = allCategories.filter(c =>
+                c.full_path.toLowerCase().includes(query)
+            ).slice(0, 20);
+
+            if (matches.length > 0) {
+                results.innerHTML = matches.map(cat => `
+                    <div class="category-list-item" onclick="assignCategory('${cat.full_path}')">
+                        ${escapeHtml(cat.full_path)}
+                    </div>
+                `).join('');
+                document.getElementById('drilldownSection').classList.remove('visible');
+            } else {
+                results.innerHTML = '<div class="category-list-item" style="color: #999;">No matches found</div>';
+            }
+        }
+
+        function selectTransaction(id) {
+            selectedTransaction = transactions.find(t => t.id === id);
+            isBulkMode = false;
+
+            // Pre-fill note if exists
+            const noteInput = document.getElementById('noteInput');
+            noteInput.value = selectedTransaction.note || '';
+
+            openSelector();
+        }
+
+        function selectCategory(bulk = false) {
+            if (bulk && selectedTransactions.size === 0) {
+                alert('Please select transactions first');
+                return;
+            }
+
+            isBulkMode = bulk;
+
+            // Clear note for bulk mode
+            if (bulk) {
+                document.getElementById('noteInput').value = '';
+            }
+
+            openSelector();
+        }
+
+        async function assignCategory(categoryPath) {
+            const note = document.getElementById('noteInput').value.trim() || null;
+
+            try {
+                if (isBulkMode) {
+                    // Bulk update
+                    const response = await fetch('/transactions/bulk', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            transaction_ids: Array.from(selectedTransactions),
+                            category: categoryPath
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to update transactions');
+
+                    // Update local data
+                    transactions = transactions.map(t =>
+                        selectedTransactions.has(t.id)
+                            ? { ...t, category: categoryPath, status: 'categorized' }
+                            : t
+                    );
+
+                    clearSelection();
+                } else {
+                    // Single update
+                    const response = await fetch(`/transactions/${selectedTransaction.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ category: categoryPath, note: note })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to update transaction');
+
+                    const updated = await response.json();
+
+                    // Update local data
+                    transactions = transactions.map(t =>
+                        t.id === updated.id ? updated : t
+                    );
+                }
+
+                closeSelector();
+                renderTransactions();
+                await loadBatch(); // Refresh progress
+                await loadFrequentCategories(); // Update frequent categories
+            } catch (error) {
+                console.error('Error assigning category:', error);
+                alert('Failed to assign category');
+            }
+        }
+
+        function toggleTransaction(id) {
+            if (selectedTransactions.has(id)) {
+                selectedTransactions.delete(id);
+            } else {
+                selectedTransactions.add(id);
+            }
+            updateBulkActions();
+            renderTransactions();
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const filtered = transactions.filter(t => {
+                if (currentFilter === 'uncategorized') return t.status === 'uncategorized';
+                if (currentFilter === 'categorized') return t.status === 'categorized';
+                return true;
+            });
+
+            if (selectAll.checked) {
+                filtered.forEach(t => selectedTransactions.add(t.id));
+            } else {
+                filtered.forEach(t => selectedTransactions.delete(t.id));
+            }
+
+            updateBulkActions();
+            renderTransactions();
+        }
+
+        function clearSelection() {
+            selectedTransactions.clear();
+            document.getElementById('selectAll').checked = false;
+            updateBulkActions();
+            renderTransactions();
+        }
+
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+
+            if (selectedTransactions.size > 0) {
+                bulkActions.classList.add('visible');
+                selectedCount.textContent = `${selectedTransactions.size} selected`;
+            } else {
+                bulkActions.classList.remove('visible');
+            }
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === filter);
+            });
+            renderTransactions();
+        }
+
+        function openSelector() {
+            document.getElementById('categorySelector').classList.add('visible');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('drilldownSection').classList.remove('visible');
+        }
+
+        function closeSelector() {
+            document.getElementById('categorySelector').classList.remove('visible');
+            document.getElementById('noteInput').value = '';
+        }
+
+        function updateProgress() {
+            if (!batch) return;
+
+            const categorized = transactions.filter(t => t.status === 'categorized').length;
+            const total = transactions.length;
+            const percent = total > 0 ? (categorized / total) * 100 : 0;
+
+            document.getElementById('progressText').textContent = `${categorized}/${total} categorized`;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+        }
+
+        function goBack() {
+            window.location.href = '/static/batches.html';
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatAmount(amount) {
+            const abs = Math.abs(amount);
+            return (amount < 0 ? '-' : '+') + abs.toFixed(2);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
