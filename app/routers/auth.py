@@ -8,19 +8,21 @@ from app.database import get_db
 from app.services.user import authenticate_user
 from app.auth import create_session, delete_session, get_session_from_request, get_current_user
 from app.config import settings
+import sqlite3
 
 
 router = APIRouter()
 
 
 @router.post("/login", response_model=UserResponse)
-def login(credentials: UserLogin, response: Response):
+def login(credentials: UserLogin, response: Response, db: sqlite3.Connection = Depends(get_db)):
     """
     Authenticate user and create session
 
     Args:
         credentials: Username and password
         response: FastAPI response object (to set cookie)
+        db: Database connection
 
     Returns:
         User data
@@ -29,8 +31,7 @@ def login(credentials: UserLogin, response: Response):
         401: If credentials are invalid
     """
     # Authenticate user
-    with get_db() as db:
-        user = authenticate_user(db, credentials.username, credentials.password)
+    user = authenticate_user(db, credentials.username, credentials.password)
 
     if not user:
         raise HTTPException(
