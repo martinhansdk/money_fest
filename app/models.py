@@ -68,6 +68,10 @@ class BatchResponse(BaseModel):
     date_range_start: Optional[str]
     date_range_end: Optional[str]
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    total_count: int = 0
+    categorized_count: int = 0
+    progress_percent: float = 0.0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -76,6 +80,13 @@ class BatchResponse(BaseModel):
 
 class TransactionUpdate(BaseModel):
     """Request model for updating a transaction (Phase 2)"""
+    category: Optional[str] = None
+    note: Optional[str] = None
+
+
+class BulkTransactionUpdate(BaseModel):
+    """Request model for bulk updating transactions (Phase 2)"""
+    transaction_ids: list[int] = Field(..., min_length=1)
     category: Optional[str] = None
     note: Optional[str] = None
 

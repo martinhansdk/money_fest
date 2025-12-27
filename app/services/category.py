@@ -152,3 +152,28 @@ def increment_category_usage(db: sqlite3.Connection, full_path: str) -> None:
         (full_path,)
     )
     db.commit()
+
+
+def get_frequent_categories(db: sqlite3.Connection, limit: int = 15) -> list[dict]:
+    """
+    Get frequently used categories
+
+    Args:
+        db: Database connection
+        limit: Maximum number of categories to return (default 15)
+
+    Returns:
+        List of category dicts sorted by usage_count (descending) then full_path (ascending)
+    """
+    cursor = db.execute(
+        """
+        SELECT id, name, parent, full_path, usage_count, created_at
+        FROM categories
+        WHERE usage_count > 0
+        ORDER BY usage_count DESC, full_path ASC
+        LIMIT ?
+        """,
+        (limit,)
+    )
+    rows = cursor.fetchall()
+    return [dict_from_row(row) for row in rows]

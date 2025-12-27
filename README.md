@@ -4,20 +4,31 @@ A self-hosted web application for collaborative bank transaction categorization 
 
 ## Features
 
-**Phase 1 (Current):**
+**Phase 1 (Complete):**
 - ✅ User authentication with secure sessions
 - ✅ Mobile-friendly login UI
 - ✅ Database schema for transactions, categories, batches, and rules
 - ✅ CLI tools for user management and setup
 - ✅ 175 pre-defined expense categories
 
-**Phase 2-8 (Upcoming):**
-- Batch upload and management
+**Phase 2 (Complete):**
+- ✅ CSV upload with auto-format detection (AceMoney & Danske Bank)
+- ✅ Batch management (create, list, delete, archive/unarchive)
+- ✅ Transaction listing and updates
+- ✅ Bulk transaction categorization
+- ✅ Category management with usage tracking
+- ✅ Frequent categories endpoint
+- ✅ CSV download in AceMoney format
+- ✅ Progress tracking (X/Y categorized, percentage)
+- ✅ Date range calculation
+- ✅ Ownership verification for multi-user support
+
+**Phase 3-8 (Upcoming):**
 - Transaction categorization UI
 - Real-time WebSocket sync
 - Rules engine for auto-suggestions
 - Similar transaction matching
-- Export to CSV for AceMoney
+- Mobile optimization and UX polish
 
 ## Tech Stack
 
@@ -283,13 +294,44 @@ The database file is stored in `./data/categorizer.db` on the host machine. You 
 cp data/categorizer.db data/categorizer_backup_$(date +%Y%m%d_%H%M%S).db
 ```
 
-## API Endpoints (Phase 1)
+## API Endpoints
 
-### Authentication
+### Authentication (Phase 1)
 
 - `POST /auth/login` - Login with username and password
 - `POST /auth/logout` - Logout and clear session
 - `GET /auth/me` - Get current user (protected)
+
+### Batches (Phase 2)
+
+- `POST /batches` - Upload CSV file and create batch
+  - Accepts: multipart/form-data (name, file)
+  - Auto-detects CSV format (AceMoney or Danske Bank)
+  - Returns: Batch with progress information
+- `GET /batches?include_archived=false` - List all batches
+  - Query params: `include_archived` (boolean, default false)
+  - Returns: List of batches with progress
+- `GET /batches/{id}` - Get batch details with progress
+- `DELETE /batches/{id}` - Delete batch and all transactions
+- `POST /batches/{id}/archive` - Archive a batch
+- `POST /batches/{id}/unarchive` - Unarchive a batch
+- `GET /batches/{id}/download` - Download batch as CSV (AceMoney format)
+  - Automatically archives batch after download
+
+### Transactions (Phase 2)
+
+- `GET /batches/{batch_id}/transactions` - List transactions for a batch
+- `PUT /transactions/{id}` - Update transaction category and/or note
+  - Body: `{"category": "Food:Groceries", "note": "Weekly shopping"}`
+- `PUT /transactions/bulk` - Bulk update multiple transactions
+  - Body: `{"transaction_ids": [1,2,3], "category": "Food:Groceries"}`
+
+### Categories (Phase 2)
+
+- `GET /categories` - List all categories (175 items)
+- `GET /categories/frequent?limit=15` - List frequently used categories
+  - Query params: `limit` (int, 1-50, default 15)
+  - Ordered by usage_count descending
 
 ### Health Check
 
@@ -301,6 +343,8 @@ cp data/categorizer.db data/categorizer_backup_$(date +%Y%m%d_%H%M%S).db
 - `GET /` - Redirect to login page
 
 **Note:** The application runs internally on port 8080 inside the container, but is accessible on port 1111 on your host machine.
+
+**Authentication:** All endpoints except `/auth/login` and `/health` require authentication via session cookie.
 
 ## Troubleshooting
 
@@ -350,9 +394,11 @@ chmod 777 data/
 - Sessions use secure random tokens
 - Minimum password length: 8 characters
 
-## CSV Format
+## CSV Formats
 
-The application expects CSV files with this format (see `sample.csv`):
+The application auto-detects and supports two CSV formats:
+
+### Format 1: AceMoney (Default Output Format)
 
 ```csv
 transaction,date,payee,category,status,withdrawal,deposit,total,comment
@@ -361,14 +407,46 @@ transaction,date,payee,category,status,withdrawal,deposit,total,comment
 ```
 
 **Encoding:** latin-1 (for Danish characters: ø, å, æ)
+**Delimiter:** comma (`,`)
 **Date format:** DD.MM.YYYY
-**Amounts:** withdrawal for expenses, deposit for income
+**Amounts:** Separate withdrawal/deposit columns (only one populated per row)
+- `withdrawal`: 100.50 → stored as -100.50 (expense)
+- `deposit`: 5000.00 → stored as +5000.00 (income)
+
+### Format 2: Danske Bank
+
+```csv
+"Dato";"Tekst";"Beløb";"Saldo";"Status";"Afstemt"
+"25.11.2024";"Netto ScanNGo";"-41,80";"98.302,29";"Udført";"Nej"
+"26.11.2024";"Salary";"28.500,00";"126.193,28";"Udført";"Nej"
+```
+
+**Encoding:** UTF-8
+**Delimiter:** semicolon (`;`)
+**Date format:** DD.MM.YYYY
+**Amounts:** Single "Beløb" column with Danish decimal format
+- Thousand separator: `.` (period)
+- Decimal separator: `,` (comma)
+- Example: "1.234,56" → stored as 1234.56
+- Example: "-41,80" → stored as -41.80 (expense)
+**Note:** "Saldo" (running balance) column is ignored
+
+### Auto-Detection
+
+Upload either format - the application automatically detects which format you're using based on:
+1. File encoding (UTF-8 vs latin-1)
+2. Delimiter (semicolon vs comma)
+3. Header columns
+
+### Export Format
+
+Downloaded CSV files are always in **AceMoney format** for import to AceMoney software.
 
 ## Roadmap
 
 - [x] **Phase 1:** Foundation (authentication, database, CLI)
-- [ ] **Phase 2:** Core batch flow (CSV upload, batch management)
-- [ ] **Phase 3:** Categorization (transaction UI, category selector)
+- [x] **Phase 2:** Core batch flow (CSV upload, batch management, transactions)
+- [ ] **Phase 3:** Categorization UI (transaction UI, category selector)
 - [ ] **Phase 4:** Real-time sync (WebSocket, celebrations)
 - [ ] **Phase 5:** Rules engine (auto-suggestions)
 - [ ] **Phase 6:** Similar transactions (fuzzy matching)
@@ -389,4 +467,4 @@ For issues or questions, check:
 
 ---
 
-**Version:** 0.1.0 (Phase 1 Complete)
+**Version:** 0.2.0 (Phase 2 Complete - Batch Management & CSV Upload)
