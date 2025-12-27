@@ -7,7 +7,6 @@ docs/
 .gitignore
 
 # Tests
-tests/
 .pytest_cache/
 htmlcov/
 .coverage

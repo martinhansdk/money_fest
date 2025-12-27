@@ -4,8 +4,9 @@ Uses in-memory session storage for simplicity (2 users)
 """
 
 import secrets
+import sqlite3
 from typing import Optional
-from fastapi import Request, HTTPException, status
+from fastapi import Request, HTTPException, status, Depends
 from app.config import settings
 from app.database import get_db
 from app.services.user import get_user_by_id
@@ -67,12 +68,13 @@ def get_session_from_request(request: Request) -> Optional[str]:
     return request.cookies.get(settings.SESSION_COOKIE_NAME)
 
 
-def get_current_user(request: Request) -> dict:
+def get_current_user(request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict:
     """
     FastAPI dependency to get current authenticated user
 
     Args:
         request: FastAPI request object
+        db: Database connection
 
     Returns:
         User dict (id, username, created_at)
@@ -97,8 +99,7 @@ def get_current_user(request: Request) -> dict:
         )
 
     # Get user from database
-    with get_db() as db:
-        user = get_user_by_id(db, user_id)
+    user = get_user_by_id(db, user_id)
 
     if not user:
         # Session exists but user was deleted

@@ -122,6 +122,32 @@ docker exec -e USER_PASSWORD=mypassword123 categorizer python -m app.cli create-
 
 Password must be at least 8 characters. **Note:** Using `--password` flag is less secure as it's visible in process lists.
 
+### reset-password
+
+Reset a user's password without losing data.
+
+```bash
+# Interactive mode (most secure, requires -it flag)
+docker exec -it categorizer python -m app.cli reset-password <username>
+
+# Non-interactive mode with --password flag
+docker exec categorizer python -m app.cli reset-password <username> --password <newpassword>
+
+# Using environment variable
+docker exec -e USER_PASSWORD=<newpassword> categorizer python -m app.cli reset-password <username>
+```
+
+**Examples:**
+```bash
+# Interactive (will prompt for password)
+docker exec -it categorizer python -m app.cli reset-password martin
+
+# Non-interactive with password argument
+docker exec categorizer python -m app.cli reset-password martin --password newpassword123
+```
+
+Password must be at least 8 characters. User must exist in the database.
+
 ### import-categories
 
 Import categories from a file.

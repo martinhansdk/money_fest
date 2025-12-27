@@ -99,6 +99,7 @@ def init_db() -> None:
                 date_range_start TEXT,
                 date_range_end TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
         """)
