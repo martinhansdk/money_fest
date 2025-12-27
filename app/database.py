@@ -23,7 +23,7 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
             cursor = db.execute("SELECT * FROM users")
             result = cursor.fetchall()
     """
-    conn = sqlite3.connect(settings.DATABASE_PATH)
+    conn = sqlite3.connect(settings.DATABASE_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Return rows as dictionaries
     conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
 
@@ -47,7 +47,7 @@ def get_db_context() -> Generator[sqlite3.Connection, None, None]:
             cursor = db.execute("SELECT * FROM users")
             result = cursor.fetchall()
     """
-    conn = sqlite3.connect(settings.DATABASE_PATH)
+    conn = sqlite3.connect(settings.DATABASE_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Return rows as dictionaries
     conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
 

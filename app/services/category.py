@@ -78,14 +78,14 @@ def import_categories_from_file(db: sqlite3.Connection, filepath: str) -> int:
     count = 0
     for parent, name, full_path in categories:
         try:
-            db.execute(
+            cursor = db.execute(
                 """
                 INSERT OR IGNORE INTO categories (name, parent, full_path, usage_count)
                 VALUES (?, ?, ?, 0)
                 """,
                 (name, parent, full_path)
             )
-            if db.cursor().rowcount > 0:
+            if cursor.rowcount > 0:
                 count += 1
         except sqlite3.Error:
             # Skip errors (e.g., constraint violations)
