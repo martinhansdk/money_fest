@@ -60,6 +60,7 @@ def test_db():
             date_range_start TEXT,
             date_range_end TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
     """)
@@ -134,10 +135,10 @@ def authenticated_client(client):
         TestClient with session cookie for authenticated requests
     """
     # Create a test user
-    from app.database import get_db
+    from app.database import get_db_context
     from app.services.user import create_user
 
-    with get_db() as db:
+    with get_db_context() as db:
         user_id = create_user(db, "testuser", "testpass123")
 
     # Login to get session cookie

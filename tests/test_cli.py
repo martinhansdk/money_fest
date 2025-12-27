@@ -12,7 +12,7 @@ from app.services.category import (
     get_all_categories
 )
 from app.services.backup import backup_database
-from app.database import get_db
+from app.database import get_db_context
 
 
 def test_parse_category_line_with_parent():
@@ -56,7 +56,7 @@ def test_import_categories_from_file():
         temp_path = f.name
 
     try:
-        with get_db() as db:
+        with get_db_context() as db:
             count = import_categories_from_file(db, temp_path)
 
             assert count == 5
@@ -75,7 +75,7 @@ def test_import_categories_from_file():
 
 def test_import_categories_file_not_found():
     """Test importing from non-existent file"""
-    with get_db() as db:
+    with get_db_context() as db:
         with pytest.raises(FileNotFoundError):
             import_categories_from_file(db, "/nonexistent/file.txt")
 
@@ -89,7 +89,7 @@ def test_import_categories_with_duplicates():
         temp_path = f.name
 
     try:
-        with get_db() as db:
+        with get_db_context() as db:
             count = import_categories_from_file(db, temp_path)
 
             # Should only import 2 (duplicate is ignored)
@@ -158,7 +158,7 @@ def test_backup_database_source_not_found():
 
 def test_create_user_via_service():
     """Test creating a user via the user service"""
-    with get_db() as db:
+    with get_db_context() as db:
         user_id = create_user(db, "cliuser", "password123")
 
         assert user_id > 0
@@ -177,7 +177,7 @@ def test_get_all_categories():
         temp_path = f.name
 
     try:
-        with get_db() as db:
+        with get_db_context() as db:
             import_categories_from_file(db, temp_path)
             categories = get_all_categories(db)
 
@@ -200,7 +200,7 @@ def test_category_with_latin1_encoding():
         temp_path = f.name
 
     try:
-        with get_db() as db:
+        with get_db_context() as db:
             count = import_categories_from_file(db, temp_path)
 
             assert count == 2

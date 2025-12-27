@@ -3,7 +3,7 @@ Tests for authentication and session management
 """
 
 import pytest
-from app.database import get_db
+from app.database import get_db_context
 from app.services.user import create_user, authenticate_user, verify_password, hash_password
 from app.auth import create_session, verify_session, delete_session
 
@@ -21,9 +21,7 @@ def test_password_hashing():
 
 def test_create_user_success():
     """Test creating a user with valid data"""
-    from app.database import get_db
-
-    with get_db() as db:
+    with get_db_context() as db:
         user_id = create_user(db, "newuser", "password123")
 
         assert user_id > 0
@@ -37,9 +35,9 @@ def test_create_user_success():
 
 def test_create_user_duplicate_username():
     """Test that duplicate usernames are rejected"""
-    from app.database import get_db
+    from app.database import get_db_context
 
-    with get_db() as db:
+    with get_db_context() as db:
         create_user(db, "duplicate", "password123")
 
         # Try to create another user with same username
@@ -49,18 +47,18 @@ def test_create_user_duplicate_username():
 
 def test_create_user_weak_password():
     """Test that weak passwords are rejected"""
-    from app.database import get_db
+    from app.database import get_db_context
 
-    with get_db() as db:
+    with get_db_context() as db:
         with pytest.raises(ValueError, match="at least 8 characters"):
             create_user(db, "testuser", "short")
 
 
 def test_authenticate_user_success():
     """Test authenticating with correct credentials"""
-    from app.database import get_db
+    from app.database import get_db_context
 
-    with get_db() as db:
+    with get_db_context() as db:
         create_user(db, "authtest", "password123")
         user = authenticate_user(db, "authtest", "password123")
 
@@ -71,9 +69,9 @@ def test_authenticate_user_success():
 
 def test_authenticate_user_wrong_password():
     """Test authentication fails with wrong password"""
-    from app.database import get_db
+    from app.database import get_db_context
 
-    with get_db() as db:
+    with get_db_context() as db:
         create_user(db, "authtest2", "password123")
         user = authenticate_user(db, "authtest2", "wrongpassword")
 
@@ -82,9 +80,9 @@ def test_authenticate_user_wrong_password():
 
 def test_authenticate_user_nonexistent():
     """Test authentication fails for nonexistent user"""
-    from app.database import get_db
+    from app.database import get_db_context
 
-    with get_db() as db:
+    with get_db_context() as db:
         user = authenticate_user(db, "nonexistent", "password123")
 
         assert user is None
@@ -93,9 +91,9 @@ def test_authenticate_user_nonexistent():
 def test_login_endpoint_success(client):
     """Test POST /auth/login with valid credentials"""
     # Create a test user
-    from app.database import get_db
+    from app.database import get_db_context
 
-    with get_db() as db:
+    with get_db_context() as db:
         create_user(db, "logintest", "testpass123")
 
     # Login
@@ -127,9 +125,9 @@ def test_login_endpoint_invalid_credentials(client):
 def test_logout_endpoint(client):
     """Test POST /auth/logout"""
     # Create and login a user
-    from app.database import get_db
+    from app.database import get_db_context
 
-    with get_db() as db:
+    with get_db_context() as db:
         create_user(db, "logouttest", "testpass123")
 
     login_response = client.post(
