@@ -452,6 +452,80 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Celebration animation */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .celebration-message {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            animation: bounceIn 0.5s ease-out;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .celebration-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+            animation: rotate 0.5s ease-out;
+        }
+
+        .celebration-text {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg) scale(0.5);
+            }
+            50% {
+                transform: rotate(180deg) scale(1.2);
+            }
+            100% {
+                transform: rotate(360deg) scale(1);
+            }
+        }
     </style>
 </head>
 <body>
@@ -544,6 +618,7 @@
     </div>
 
     <script src="/static/js/toast.js"></script>
+    <script src="/static/js/websocket.js"></script>
     <script>
         let batchId = null;
         let batch = null;
@@ -570,7 +645,80 @@
             await loadTransactions();
             await loadCategories();
             await loadFrequentCategories();
+
+            // Initialize WebSocket
+            initializeWebSocket();
         });
+
+        // Initialize WebSocket connection and event handlers
+        function initializeWebSocket() {
+            // Connect to WebSocket server
+            batchWS.connect();
+
+            // Subscribe to current batch
+            if (batchId) {
+                batchWS.subscribe(batchId);
+            }
+
+            // Handle transaction updates from other users
+            batchWS.on('transaction_updated', (message) => {
+                const updatedTransaction = message.transaction;
+
+                // Update local transaction data
+                const index = transactions.findIndex(t => t.id === updatedTransaction.id);
+                if (index !== -1) {
+                    transactions[index] = updatedTransaction;
+                    renderTransactions();
+
+                    // Show toast notification
+                    toast.info(`Transaction updated by another user`);
+                }
+            });
+
+            // Handle batch progress updates
+            batchWS.on('batch_progress', (message) => {
+                const progress = message.progress;
+                batch.categorized_count = progress.categorized_count;
+                batch.total_count = progress.total_count;
+                batch.progress_percent = progress.progress_percent;
+                updateProgress();
+            });
+
+            // Handle batch completion
+            batchWS.on('batch_complete', () => {
+                celebrateBatchComplete();
+            });
+
+            // Handle reconnection
+            batchWS.on('connected', () => {
+                if (batchId) {
+                    batchWS.subscribe(batchId);
+                }
+            });
+        }
+
+        // Celebration animation when batch is complete
+        function celebrateBatchComplete() {
+            // Create confetti effect
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti-container';
+            confetti.innerHTML = `
+                <div class="celebration-message">
+                    <div class="celebration-icon">🎉</div>
+                    <div class="celebration-text">Batch Complete!</div>
+                    <div class="celebration-subtext">All transactions categorized</div>
+                </div>
+            `;
+            document.body.appendChild(confetti);
+
+            // Show success toast
+            toast.success('🎉 All transactions categorized! Great work!', 5000);
+
+            // Remove celebration after animation
+            setTimeout(() => {
+                confetti.remove();
+            }, 4000);
+        }
 
         async function loadBatch() {
             try {
