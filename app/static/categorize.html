@@ -1128,8 +1128,17 @@
             const words = payee.trim().split(/\s+/);
             const suggestedPattern = words[0]; // First word as default pattern
 
-            // Create rule directly - user clicked the button intentionally
-            createRuleFromTransaction(suggestedPattern, category);
+            // Let user edit the pattern before creating
+            const pattern = prompt(
+                `Create rule for category: ${category}\n\n` +
+                `Edit the pattern to match similar transactions:\n` +
+                `(The rule will match any payee containing this text)`,
+                suggestedPattern
+            );
+
+            if (pattern && pattern.trim()) {
+                createRuleFromTransaction(pattern.trim(), category);
+            }
         }
 
         async function createRuleFromTransaction(pattern, category) {
