@@ -220,7 +220,31 @@ async def test_websocket_reconnect():
     """Client can reconnect after disconnect"""
 ```
 
-### 5. End-to-End Tests
+### 5. Integration Tests
+
+#### CSV Upload (`tests/test_csv_upload.js`)
+
+Playwright-based integration test for CSV upload functionality:
+
+```javascript
+// Tests both AceMoney and Danske Bank formats
+// Runs against live Docker container
+
+node tests/test_csv_upload.js
+```
+
+**Test coverage:**
+- User login flow
+- AceMoney CSV upload with DD-MM-YYYY date format
+- Danske Bank CSV upload with ISO-8859-1 encoding
+- Error handling and redirect verification
+
+**Environment:**
+- BASE_URL: http://localhost:1111 (or set via env var)
+- USERNAME: test
+- PASSWORD: test1234
+
+### 6. End-to-End Tests
 
 Manual testing checklist (not automated):
 
@@ -322,9 +346,12 @@ async def authenticated_client(client):
 - Rule matching: 100% (affects categorization suggestions)
 - API endpoints: 90%+ (all happy paths, key error cases)
 - WebSocket: 80% (basic functionality)
-- UI: Manual testing only
+- Integration tests: Key user flows (CSV upload, categorization, rules)
+- UI: Manual testing + Playwright integration tests
 
 ## Running Tests
+
+### Python Tests (pytest)
 
 ```bash
 # Run all tests
@@ -342,6 +369,28 @@ pytest tests/test_csv_parser.py::test_parse_csv_latin1_encoding
 # Run with verbose output
 pytest -v
 ```
+
+### Integration Tests (Playwright)
+
+```bash
+# Ensure Docker container is running
+docker compose up -d
+
+# Create test user if not exists
+docker exec categorizer python -m app.cli create-user test --password test1234
+
+# Run CSV upload integration test
+node tests/test_csv_upload.js
+
+# Run with browser visible (for debugging)
+HEADLESS=false node tests/test_csv_upload.js
+```
+
+**Prerequisites:**
+- Node.js installed locally
+- Playwright installed: `npm install playwright`
+- Docker container running on port 1111
+- Test user created with password test1234
 
 ## CI Considerations
 

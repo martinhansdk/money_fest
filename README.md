@@ -13,6 +13,8 @@ A self-hosted web application for collaborative bank transaction categorization 
 
 **Phase 2 (Complete):**
 - ✅ CSV upload with auto-format detection (AceMoney & Danske Bank)
+- ✅ Flexible encoding support (UTF-8, ISO-8859-1, latin-1)
+- ✅ Multiple date format support (DD.MM.YYYY, DD-MM-YYYY)
 - ✅ Batch management (create, list, delete, archive/unarchive)
 - ✅ Transaction listing and updates
 - ✅ Bulk transaction categorization
@@ -23,12 +25,34 @@ A self-hosted web application for collaborative bank transaction categorization 
 - ✅ Date range calculation
 - ✅ Ownership verification for multi-user support
 
-**Phase 3-8 (Upcoming):**
-- Transaction categorization UI
-- Real-time WebSocket sync
-- Rules engine for auto-suggestions
+**Phase 3 (Complete):**
+- ✅ Full-featured categorization UI
+- ✅ Mobile-responsive transaction table
+- ✅ Filter tabs (All/Uncategorized/Categorized)
+- ✅ Multi-select with bulk categorization
+- ✅ Hierarchical category selector with search
+- ✅ Real-time progress tracking
+- ✅ Toast notifications
+
+**Phase 4 (Complete):**
+- ✅ WebSocket real-time synchronization
+- ✅ Multi-user collaboration support
+- ✅ Auto-reconnect with exponential backoff
+- ✅ Live transaction updates across clients
+- ✅ Batch completion celebration animation
+
+**Phase 5 (Complete):**
+- ✅ Rules engine with pattern matching
+- ✅ Category suggestions based on rules
+- ✅ Rules management UI with live preview
+- ✅ Create rules from transactions
+- ✅ Multiple matching rules support
+
+**Phase 6-8 (Upcoming):**
 - Similar transaction matching
-- Mobile optimization and UX polish
+- Mobile device testing
+- Performance optimization
+- Final deployment polish
 
 ## Tech Stack
 
@@ -359,6 +383,30 @@ cp data/categorizer.db data/categorizer_backup_$(date +%Y%m%d_%H%M%S).db
   - Query params: `limit` (int, 1-50, default 15)
   - Ordered by usage_count descending
 
+### Rules (Phase 5)
+
+- `GET /rules` - List all rules for current user
+- `POST /rules` - Create new rule
+  - Body: `{"pattern": "IKEA", "match_type": "contains", "category": "Home:Furniture"}`
+- `GET /rules/{id}` - Get specific rule
+- `PUT /rules/{id}` - Update rule
+  - Body: `{"pattern": "...", "match_type": "...", "category": "..."}`
+- `DELETE /rules/{id}` - Delete rule
+- `GET /rules/suggestions/{transaction_id}` - Get category suggestions for transaction
+  - Returns: List of matching rules with categories
+- `POST /rules/preview` - Preview which transactions match a rule pattern
+  - Body: `{"pattern": "IKEA", "match_type": "contains"}`
+  - Returns: List of matching transactions
+
+### WebSocket (Phase 4)
+
+- `WS /ws` - WebSocket connection for real-time updates
+  - Messages:
+    - `{"type": "subscribe", "batch_id": 123}` - Subscribe to batch updates
+    - `{"type": "transaction_updated", "batch_id": 123, "transaction": {...}}` - Transaction updated
+    - `{"type": "batch_progress", "batch_id": 123, "categorized": 5, "total": 10}` - Progress update
+    - `{"type": "batch_complete", "batch_id": 123}` - All transactions categorized
+
 ### Health Check
 
 - `GET /health` - Health check endpoint
@@ -434,7 +482,7 @@ transaction,date,payee,category,status,withdrawal,deposit,total,comment
 
 **Encoding:** latin-1 (for Danish characters: ø, å, æ)
 **Delimiter:** comma (`,`)
-**Date format:** DD.MM.YYYY
+**Date formats:** DD.MM.YYYY or DD-MM-YYYY (both supported)
 **Amounts:** Separate withdrawal/deposit columns (only one populated per row)
 - `withdrawal`: 100.50 → stored as -100.50 (expense)
 - `deposit`: 5000.00 → stored as +5000.00 (income)
@@ -447,7 +495,7 @@ transaction,date,payee,category,status,withdrawal,deposit,total,comment
 "26.11.2024";"Salary";"28.500,00";"126.193,28";"Udført";"Nej"
 ```
 
-**Encoding:** UTF-8
+**Encoding:** UTF-8 or ISO-8859-1 (both supported)
 **Delimiter:** semicolon (`;`)
 **Date format:** DD.MM.YYYY
 **Amounts:** Single "Beløb" column with Danish decimal format
@@ -460,9 +508,10 @@ transaction,date,payee,category,status,withdrawal,deposit,total,comment
 ### Auto-Detection
 
 Upload either format - the application automatically detects which format you're using based on:
-1. File encoding (UTF-8 vs latin-1)
+1. File encoding (UTF-8, ISO-8859-1, or latin-1)
 2. Delimiter (semicolon vs comma)
 3. Header columns
+4. Date format (automatically handles both DD.MM.YYYY and DD-MM-YYYY)
 
 ### Export Format
 
@@ -472,11 +521,11 @@ Downloaded CSV files are always in **AceMoney format** for import to AceMoney so
 
 - [x] **Phase 1:** Foundation (authentication, database, CLI)
 - [x] **Phase 2:** Core batch flow (CSV upload, batch management, transactions)
-- [ ] **Phase 3:** Categorization UI (transaction UI, category selector)
-- [ ] **Phase 4:** Real-time sync (WebSocket, celebrations)
-- [ ] **Phase 5:** Rules engine (auto-suggestions)
+- [x] **Phase 3:** Categorization UI (transaction UI, category selector)
+- [x] **Phase 4:** Real-time sync (WebSocket, celebrations)
+- [x] **Phase 5:** Rules engine (suggestion-based categorization)
 - [ ] **Phase 6:** Similar transactions (fuzzy matching)
-- [ ] **Phase 7:** Polish (UX improvements, mobile optimization)
+- [~] **Phase 7:** Polish (UX improvements, mobile optimization) - Partially complete
 - [ ] **Phase 8:** Deployment (final testing, documentation)
 
 ## License
@@ -493,4 +542,4 @@ For issues or questions, check:
 
 ---
 
-**Version:** 0.2.0 (Phase 2 Complete - Batch Management & CSV Upload)
+**Version:** 0.5.0 (Phases 1-5 Complete - Rules Engine & Real-Time Sync)
