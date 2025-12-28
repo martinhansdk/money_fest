@@ -810,6 +810,7 @@
         let selectedTransactions = new Set();
         let selectedTransaction = null;
         let isBulkMode = false;
+        let currentUser = null;
 
         // Parse batch ID from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -820,8 +821,20 @@
             setTimeout(() => window.location.href = '/static/batches.html', 1000);
         }
 
+        // Load current user
+        async function loadCurrentUser() {
+            try {
+                const response = await fetch('/auth/me', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load user');
+                currentUser = await response.json();
+            } catch (error) {
+                console.error('Error loading current user:', error);
+            }
+        }
+
         // Load data on page load
         window.addEventListener('DOMContentLoaded', async () => {
+            await loadCurrentUser();
             await loadBatch();
             await loadTransactions();
             await loadCategories();
@@ -844,6 +857,7 @@
             // Handle transaction updates from other users
             batchWS.on('transaction_updated', (message) => {
                 const updatedTransaction = message.transaction;
+                const updatedByUserId = message.user_id;
 
                 // Update local transaction data
                 const index = transactions.findIndex(t => t.id === updatedTransaction.id);
@@ -851,8 +865,10 @@
                     transactions[index] = updatedTransaction;
                     renderTransactions();
 
-                    // Show toast notification
-                    toast.info(`Transaction updated by another user`);
+                    // Show toast notification only if update was by another user
+                    if (currentUser && updatedByUserId && updatedByUserId !== currentUser.id) {
+                        toast.info(`Transaction updated by another user`);
+                    }
                 }
             });
 

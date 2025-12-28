@@ -84,12 +84,13 @@ class ConnectionManager:
         for websocket in dead_connections:
             self.disconnect(websocket)
 
-    async def broadcast_transaction_updated(self, batch_id: int, transaction: dict, exclude: WebSocket = None):
+    async def broadcast_transaction_updated(self, batch_id: int, transaction: dict, user_id: int = None, exclude: WebSocket = None):
         """Broadcast that a transaction was updated"""
         message = {
             "type": "transaction_updated",
             "batch_id": batch_id,
-            "transaction": transaction
+            "transaction": transaction,
+            "user_id": user_id  # Include user who made the change
         }
         await self.broadcast_to_batch(batch_id, message, exclude)
 

@@ -89,7 +89,7 @@ async def bulk_update_endpoint(
             for transaction_id in bulk_update.transaction_ids:
                 transaction = get_transaction_by_id(db, transaction_id)
                 if transaction:
-                    await manager.broadcast_transaction_updated(batch_id, transaction)
+                    await manager.broadcast_transaction_updated(batch_id, transaction, user_id=user['id'])
 
             # Check if batch is complete
             if progress['categorized_count'] == progress['total_count'] and progress['total_count'] > 0:
@@ -132,7 +132,8 @@ async def update_transaction_endpoint(
         # Broadcast update via WebSocket
         await manager.broadcast_transaction_updated(
             transaction['batch_id'],
-            transaction
+            transaction,
+            user_id=user['id']
         )
 
         # Broadcast progress update
