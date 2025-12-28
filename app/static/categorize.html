@@ -526,6 +526,32 @@
                 transform: rotate(360deg) scale(1);
             }
         }
+
+        /* Rule suggestions */
+        .rule-suggestions {
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .category-button.suggested {
+            background: #ffd700;
+            color: #333;
+            border: 2px solid #ffcc00;
+            position: relative;
+        }
+
+        .category-button.suggested:hover {
+            background: #ffcc00;
+            transform: translateY(-1px);
+        }
+
+        .suggestion-badge {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+            font-weight: normal;
+        }
     </style>
 </head>
 <body>
@@ -589,6 +615,12 @@
         <div class="category-selector-header">
             <div class="category-selector-title">Select Category</div>
             <button class="close-selector" onclick="closeSelector()">×</button>
+        </div>
+
+        <!-- Rule Suggestions -->
+        <div class="rule-suggestions" id="ruleSuggestionsSection" style="display: none;">
+            <div class="section-title">💡 Suggested</div>
+            <div class="category-buttons" id="ruleSuggestions"></div>
         </div>
 
         <!-- Frequent Categories -->
@@ -774,6 +806,42 @@
             }
         }
 
+        async function loadRuleSuggestions(transactionId) {
+            try {
+                const response = await fetch(`/rules/suggestions/${transactionId}`, { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load rule suggestions');
+
+                const suggestions = await response.json();
+                renderRuleSuggestions(suggestions);
+            } catch (error) {
+                console.error('Error loading rule suggestions:', error);
+                // Hide suggestions section if error
+                document.getElementById('ruleSuggestionsSection').style.display = 'none';
+            }
+        }
+
+        function renderRuleSuggestions(suggestions) {
+            const section = document.getElementById('ruleSuggestionsSection');
+            const container = document.getElementById('ruleSuggestions');
+
+            if (suggestions.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            container.innerHTML = suggestions.map(s => `
+                <button class="category-button suggested" onclick="assignCategory('${escapeAttribute(s.category)}')">
+                    ${escapeHtml(s.category)}
+                    <span class="suggestion-badge">from "${escapeHtml(s.pattern)}"</span>
+                </button>
+            `).join('');
+        }
+
+        function escapeAttribute(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
         function renderTransactions() {
             const tbody = document.getElementById('transactionList');
             let filtered = transactions.filter(t => {
@@ -855,13 +923,16 @@
         // Debounced version for better performance
         const debouncedSearch = debounce(searchCategories, 300);
 
-        function selectTransaction(id) {
+        async function selectTransaction(id) {
             selectedTransaction = transactions.find(t => t.id === id);
             isBulkMode = false;
 
             // Pre-fill note if exists
             const noteInput = document.getElementById('noteInput');
             noteInput.value = selectedTransaction.note || '';
+
+            // Load rule suggestions
+            await loadRuleSuggestions(id);
 
             openSelector();
         }
@@ -936,6 +1007,11 @@
                 const count = isBulkMode ? selectedTransactions.size : 1;
                 const plural = count > 1 ? 's' : '';
                 toast.success(`${count} transaction${plural} categorized as "${categoryPath}"`);
+
+                // Prompt to create rule (only for single categorization)
+                if (!isBulkMode && selectedTransaction) {
+                    promptCreateRule(selectedTransaction.payee, categoryPath);
+                }
             } catch (error) {
                 console.error('Error assigning category:', error);
                 toast.error('Failed to assign category. Please try again.');
@@ -1018,6 +1094,50 @@
 
             document.getElementById('progressText').textContent = `${categorized}/${total} categorized`;
             document.getElementById('progressFill').style.width = `${percent}%`;
+        }
+
+        function promptCreateRule(payee, category) {
+            // Extract a pattern from the payee (first word or full text)
+            const words = payee.trim().split(/\s+/);
+            const suggestedPattern = words[0]; // First word as default pattern
+
+            setTimeout(() => {
+                const createRule = confirm(
+                    `💡 Create a rule for similar transactions?\n\n` +
+                    `Pattern: "${suggestedPattern}"\n` +
+                    `Category: ${category}\n\n` +
+                    `Click OK to create this rule, or Cancel to skip.`
+                );
+
+                if (createRule) {
+                    createRuleFromTransaction(suggestedPattern, category);
+                }
+            }, 500); // Small delay after success toast
+        }
+
+        async function createRuleFromTransaction(pattern, category) {
+            try {
+                const response = await fetch('/rules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        pattern: pattern,
+                        match_type: 'contains',
+                        category: category
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to create rule');
+                }
+
+                toast.success(`Rule created: "${pattern}" → ${category}`);
+            } catch (error) {
+                console.error('Error creating rule:', error);
+                toast.error('Failed to create rule: ' + error.message);
+            }
         }
 
         function goBack() {

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Money Fest - Rules</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Categorization Rules</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="goBack()">← Back</button>
+                <button class="btn btn-primary" onclick="showCreateRuleModal()">+ Create Rule</button>
+            </div>
+        </div>
+
+        <div class="rules-list" id="rulesList">
+            <p class="loading">Loading rules...</p>
+        </div>
+    </div>
+
+    <!-- Create/Edit Rule Modal -->
+    <div class="modal" id="ruleModal">
+        <div class="modal-header">
+            <div class="modal-title" id="ruleModalTitle">Create Rule</div>
+            <button class="modal-close" onclick="closeRuleModal()">×</button>
+        </div>
+        <div class="modal-content">
+            <form id="ruleForm" onsubmit="saveRule(event)">
+                <div class="form-group">
+                    <label for="rulePattern">Pattern</label>
+                    <input type="text" id="rulePattern" required placeholder="e.g., Starbucks">
+                    <small>Text to match in transaction payee</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="ruleMatchType">Match Type</label>
+                    <select id="ruleMatchType" required>
+                        <option value="contains">Contains</option>
+                        <option value="exact">Exact match</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="ruleCategory">Category</label>
+                    <select id="ruleCategory" required>
+                        <option value="">Select a category...</option>
+                    </select>
+                </div>
+
+                <div id="rulePreview">
+                    <h3>Matching Transactions <span id="previewCount"></span></h3>
+                    <div id="previewList" class="preview-list"></div>
+                </div>
+
+                <div id="ruleError" class="error-message" style="display: none;"></div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRuleModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveRuleButton">Create Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/toast.js"></script>
+    <script>
+        let categories = [];
+        let rules = [];
+        let editingRuleId = null;
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/categories');
+                if (!response.ok) throw new Error('Failed to load categories');
+
+                categories = await response.json();
+
+                // Populate category select
+                const select = document.getElementById('ruleCategory');
+                select.innerHTML = '<option value="">Select a category...</option>';
+
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.full_path;
+                    option.textContent = category.full_path;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                toast.error('Failed to load categories');
+            }
+        }
+
+        async function loadRules() {
+            try {
+                const response = await fetch('/rules');
+                if (!response.ok) throw new Error('Failed to load rules');
+
+                rules = await response.json();
+                renderRules();
+            } catch (error) {
+                console.error('Error loading rules:', error);
+                document.getElementById('rulesList').innerHTML = '<p class="error">Failed to load rules</p>';
+            }
+        }
+
+        function renderRules() {
+            const rulesList = document.getElementById('rulesList');
+
+            if (rules.length === 0) {
+                rulesList.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No rules yet</h2>
+                        <p>Create rules to get smart category suggestions when categorizing transactions</p>
+                        <button class="btn btn-primary" onclick="showCreateRuleModal()">+ Create First Rule</button>
+                    </div>
+                `;
+                return;
+            }
+
+            rulesList.innerHTML = rules.map(rule => `
+                <div class="rule-card">
+                    <div class="rule-info">
+                        <div class="rule-pattern">
+                            <strong>${escapeHtml(rule.pattern)}</strong>
+                            <span class="badge">${rule.match_type}</span>
+                        </div>
+                        <div class="rule-category">→ ${escapeHtml(rule.category)}</div>
+                    </div>
+                    <div class="rule-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editRule(${rule.id})">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteRule(${rule.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showCreateRuleModal() {
+            editingRuleId = null;
+            document.getElementById('ruleModalTitle').textContent = 'Create Rule';
+            document.getElementById('saveRuleButton').textContent = 'Create Rule';
+            document.getElementById('ruleForm').reset();
+            document.getElementById('ruleError').style.display = 'none';
+            document.getElementById('previewList').innerHTML = '<p class="muted">Enter a pattern to see matching transactions</p>';
+            document.getElementById('previewCount').textContent = '';
+            document.getElementById('ruleModal').classList.add('visible');
+        }
+
+        function closeRuleModal() {
+            document.getElementById('ruleModal').classList.remove('visible');
+        }
+
+        async function editRule(ruleId) {
+            const rule = rules.find(r => r.id === ruleId);
+            if (!rule) return;
+
+            editingRuleId = ruleId;
+            document.getElementById('ruleModalTitle').textContent = 'Edit Rule';
+            document.getElementById('saveRuleButton').textContent = 'Update Rule';
+            document.getElementById('rulePattern').value = rule.pattern;
+            document.getElementById('ruleMatchType').value = rule.match_type;
+            document.getElementById('ruleCategory').value = rule.category;
+            document.getElementById('ruleError').style.display = 'none';
+
+            // Update preview
+            await updatePreview();
+
+            document.getElementById('ruleModal').classList.add('visible');
+        }
+
+        async function saveRule(event) {
+            event.preventDefault();
+
+            const pattern = document.getElementById('rulePattern').value.trim();
+            const matchType = document.getElementById('ruleMatchType').value;
+            const category = document.getElementById('ruleCategory').value;
+            const errorDiv = document.getElementById('ruleError');
+            const saveButton = document.getElementById('saveRuleButton');
+
+            if (!pattern || !matchType || !category) {
+                errorDiv.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            saveButton.disabled = true;
+
+            try {
+                const url = editingRuleId ? `/rules/${editingRuleId}` : '/rules';
+                const method = editingRuleId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pattern, match_type: matchType, category })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to save rule');
+                }
+
+                toast.success(editingRuleId ? 'Rule updated successfully' : 'Rule created successfully');
+                closeRuleModal();
+                await loadRules();
+            } catch (error) {
+                console.error('Error saving rule:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                saveButton.disabled = false;
+            }
+        }
+
+        async function deleteRule(ruleId) {
+            if (!confirm('Are you sure you want to delete this rule?')) return;
+
+            try {
+                const response = await fetch(`/rules/${ruleId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Failed to delete rule');
+
+                toast.success('Rule deleted successfully');
+                await loadRules();
+            } catch (error) {
+                console.error('Error deleting rule:', error);
+                toast.error('Failed to delete rule');
+            }
+        }
+
+        async function updatePreview() {
+            const pattern = document.getElementById('rulePattern').value.trim();
+            const matchType = document.getElementById('ruleMatchType').value;
+            const previewList = document.getElementById('previewList');
+            const previewCount = document.getElementById('previewCount');
+
+            if (!pattern) {
+                previewList.innerHTML = '<p class="muted">Enter a pattern to see matching transactions</p>';
+                previewCount.textContent = '';
+                return;
+            }
+
+            try {
+                const response = await fetch('/rules/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pattern, match_type: matchType })
+                });
+
+                if (!response.ok) throw new Error('Failed to preview');
+
+                const transactions = await response.json();
+
+                if (transactions.length === 0) {
+                    previewList.innerHTML = '<p class="muted">No matching transactions found</p>';
+                    previewCount.textContent = '';
+                } else {
+                    previewCount.textContent = `(${transactions.length})`;
+                    previewList.innerHTML = transactions.slice(0, 10).map(t => {
+                        const amount = parseFloat(t.amount);
+                        const color = amount >= 0 ? '#4caf50' : '#f44336';
+                        const sign = amount >= 0 ? '+' : '';
+                        return `
+                            <div class="preview-item">
+                                <span>${escapeHtml(t.payee)}</span>
+                                <span style="color: ${color}">${sign}${amount.toFixed(2)}</span>
+                            </div>
+                        `;
+                    }).join('') + (transactions.length > 10 ? '<p class="muted">...and ' + (transactions.length - 10) + ' more</p>' : '');
+                }
+            } catch (error) {
+                console.error('Error previewing:', error);
+                previewList.innerHTML = '<p class="error">Failed to load preview</p>';
+            }
+        }
+
+        // Debounce preview updates
+        const debouncedPreview = debounce(updatePreview, 500);
+
+        // Add input listeners
+        document.getElementById('rulePattern').addEventListener('input', debouncedPreview);
+        document.getElementById('ruleMatchType').addEventListener('change', updatePreview);
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function goBack() {
+            window.location.href = '/static/batches.html';
+        }
+
+        // Load data on page load
+        loadCategories();
+        loadRules();
+    </script>
+
+    <style>
+        .rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rule-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .rule-info {
+            flex: 1;
+        }
+
+        .rule-pattern {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .rule-category {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .rule-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .btn-danger {
+            background: #f44336;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        #rulePreview {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        #rulePreview h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        #rulePreview h3 span {
+            color: #667eea;
+            font-weight: normal;
+        }
+
+        .preview-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        .preview-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+
+        .preview-item:last-child {
+            border-bottom: none;
+        }
+
+        .muted {
+            color: #999;
+            font-style: italic;
+            padding: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state h2 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+    </style>
+</body>
+</html>

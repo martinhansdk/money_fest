@@ -107,17 +107,24 @@ class TransactionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ==================== Rule Models (Phase 2 stubs) ====================
+# ==================== Rule Models (Phase 5) ====================
 
 class RuleCreate(BaseModel):
-    """Request model for creating a rule (Phase 2)"""
-    pattern: str = Field(..., min_length=1, max_length=200)
-    match_type: str = Field(..., pattern="^(contains|exact)$")
-    category: str
+    """Request model for creating a rule"""
+    pattern: str = Field(..., min_length=1, max_length=200, description="Pattern to match in payee")
+    match_type: str = Field(..., pattern="^(contains|exact)$", description="How to match the pattern")
+    category: str = Field(..., description="Category to suggest")
+
+
+class RuleUpdate(BaseModel):
+    """Request model for updating a rule"""
+    pattern: Optional[str] = Field(None, min_length=1, max_length=200)
+    match_type: Optional[str] = Field(None, pattern="^(contains|exact)$")
+    category: Optional[str] = None
 
 
 class RuleResponse(BaseModel):
-    """Response model for rule data (Phase 2)"""
+    """Response model for rule data"""
     id: int
     user_id: int
     pattern: str
@@ -126,3 +133,17 @@ class RuleResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RuleSuggestion(BaseModel):
+    """Suggestion from a matching rule"""
+    rule_id: int
+    category: str
+    pattern: str
+    match_type: str
+
+
+class RulePreviewRequest(BaseModel):
+    """Request to preview which transactions match a rule pattern"""
+    pattern: str = Field(..., min_length=1)
+    match_type: str = Field(..., pattern="^(contains|exact)$")
