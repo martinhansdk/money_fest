@@ -220,6 +220,37 @@
             color: #667eea;
             font-weight: 500;
             width: 200px;
+            position: relative;
+        }
+
+        .category-text {
+            display: inline;
+        }
+
+        .create-rule-btn {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #f0f0f0;
+            color: #666;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+            vertical-align: middle;
+        }
+
+        tbody tr:hover .create-rule-btn {
+            opacity: 1;
+        }
+
+        .create-rule-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
 
         .category-empty {
@@ -869,7 +900,8 @@
                         ${formatAmount(t.amount)}
                     </td>
                     <td class="category-cell ${t.category ? '' : 'category-empty'}">
-                        ${t.category || 'Not categorized'}
+                        <span class="category-text">${t.category || 'Not categorized'}</span>
+                        ${t.category ? `<button class="create-rule-btn" onclick="event.stopPropagation(); promptCreateRule('${escapeAttribute(t.payee)}', '${escapeAttribute(t.category)}')" title="Create rule for similar transactions">+ Rule</button>` : ''}
                     </td>
                     <td class="status-cell">
                         <span class="status-indicator status-${t.status}"></span>
@@ -1007,11 +1039,6 @@
                 const count = isBulkMode ? selectedTransactions.size : 1;
                 const plural = count > 1 ? 's' : '';
                 toast.success(`${count} transaction${plural} categorized as "${categoryPath}"`);
-
-                // Prompt to create rule (only for single categorization)
-                if (!isBulkMode && selectedTransaction) {
-                    promptCreateRule(selectedTransaction.payee, categoryPath);
-                }
             } catch (error) {
                 console.error('Error assigning category:', error);
                 toast.error('Failed to assign category. Please try again.');
@@ -1097,22 +1124,12 @@
         }
 
         function promptCreateRule(payee, category) {
-            // Extract a pattern from the payee (first word or full text)
+            // Extract a pattern from the payee (first word as default)
             const words = payee.trim().split(/\s+/);
             const suggestedPattern = words[0]; // First word as default pattern
 
-            setTimeout(() => {
-                const createRule = confirm(
-                    `💡 Create a rule for similar transactions?\n\n` +
-                    `Pattern: "${suggestedPattern}"\n` +
-                    `Category: ${category}\n\n` +
-                    `Click OK to create this rule, or Cancel to skip.`
-                );
-
-                if (createRule) {
-                    createRuleFromTransaction(suggestedPattern, category);
-                }
-            }, 500); // Small delay after success toast
+            // Create rule directly - user clicked the button intentionally
+            createRuleFromTransaction(suggestedPattern, category);
         }
 
         async function createRuleFromTransaction(pattern, category) {
