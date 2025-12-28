@@ -49,7 +49,7 @@ class AceMoneyParser(CSVParser):
     - Encoding: latin-1
     - Delimiter: comma
     - Headers: transaction,date,payee,category,status,withdrawal,deposit,total,comment
-    - Date: DD.MM.YYYY
+    - Date: DD.MM.YYYY or DD-MM-YYYY (both formats supported)
     - Amount: Separate withdrawal/deposit columns (only one populated)
     """
 
@@ -75,9 +75,20 @@ class AceMoneyParser(CSVParser):
 
         for row_num, row in enumerate(reader, start=2):  # Start at 2 (after header)
             try:
-                # Parse date: DD.MM.YYYY → YYYY-MM-DD
+                # Parse date: DD.MM.YYYY or DD-MM-YYYY → YYYY-MM-DD
                 date_str = row['date'].strip()
-                date_obj = datetime.strptime(date_str, '%d.%m.%Y')
+                # Try both formats (with periods and hyphens)
+                date_obj = None
+                for fmt in ['%d.%m.%Y', '%d-%m-%Y']:
+                    try:
+                        date_obj = datetime.strptime(date_str, fmt)
+                        break
+                    except ValueError:
+                        continue
+
+                if not date_obj:
+                    raise ValueError(f"Invalid date format '{date_str}' (expected DD.MM.YYYY or DD-MM-YYYY)")
+
                 date_internal = date_obj.strftime('%Y-%m-%d')
 
                 # Get payee
@@ -163,7 +174,7 @@ class DanskeBankParser(CSVParser):
     Parser for Danske Bank CSV format
 
     Format:
-    - Encoding: UTF-8
+    - Encoding: UTF-8 or ISO-8859-1 (both supported)
     - Delimiter: semicolon
     - Headers: "Dato";"Tekst";"Beløb";"Saldo";"Status";"Afstemt"
     - Date: DD.MM.YYYY
@@ -182,11 +193,17 @@ class DanskeBankParser(CSVParser):
         if errors:
             raise ValueError(f"CSV validation failed: {'; '.join(errors)}")
 
-        # Decode with UTF-8
-        try:
-            text = file_content.decode('utf-8')
-        except UnicodeDecodeError as e:
-            raise ValueError(f"Failed to decode file with UTF-8 encoding: {e}")
+        # Decode with UTF-8 or ISO-8859-1 (latin-1) as fallback
+        text = None
+        for encoding in ['utf-8', 'iso-8859-1']:
+            try:
+                text = file_content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+
+        if not text:
+            raise ValueError("Failed to decode file with UTF-8 or ISO-8859-1 encoding")
 
         # Parse CSV with semicolon delimiter
         reader = csv.DictReader(io.StringIO(text), delimiter=';')
@@ -262,11 +279,17 @@ class DanskeBankParser(CSVParser):
             errors.append("File is empty")
             return errors
 
-        # Try to decode
-        try:
-            text = file_content.decode('utf-8')
-        except UnicodeDecodeError as e:
-            errors.append(f"Failed to decode file with UTF-8 encoding: {e}")
+        # Try to decode with UTF-8 or ISO-8859-1
+        text = None
+        for encoding in ['utf-8', 'iso-8859-1']:
+            try:
+                text = file_content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+
+        if not text:
+            errors.append("Failed to decode file with UTF-8 or ISO-8859-1 encoding")
             return errors
 
         # Parse CSV to check headers (semicolon delimiter)
@@ -308,21 +331,22 @@ def detect_csv_format(file_content: bytes) -> str:
     if not file_content or len(file_content.strip()) == 0:
         raise ValueError("File is empty")
 
-    # Try Danske Bank first (UTF-8 + semicolon)
-    try:
-        text = file_content.decode('utf-8')
-        # Check if it uses semicolon delimiter
-        if ';' in text.split('\n')[0]:
-            # Check if headers match Danske Bank format
-            reader = csv.reader(io.StringIO(text), delimiter=';')
-            headers = next(reader)
-            headers = [h.strip().strip('"') for h in headers]
-            # Check exact match or required headers (allows for encoding issues)
-            if (headers == DanskeBankParser.EXPECTED_HEADERS or
-                all(req in headers for req in DanskeBankParser.REQUIRED_HEADERS)):
-                return "danske_bank"
-    except (UnicodeDecodeError, StopIteration):
-        pass
+    # Try Danske Bank first (UTF-8 or ISO-8859-1 + semicolon)
+    for encoding in ['utf-8', 'iso-8859-1']:
+        try:
+            text = file_content.decode(encoding)
+            # Check if it uses semicolon delimiter
+            if ';' in text.split('\n')[0]:
+                # Check if headers match Danske Bank format
+                reader = csv.reader(io.StringIO(text), delimiter=';')
+                headers = next(reader)
+                headers = [h.strip().strip('"') for h in headers]
+                # Check exact match or required headers (allows for encoding issues)
+                if (headers == DanskeBankParser.EXPECTED_HEADERS or
+                    all(req in headers for req in DanskeBankParser.REQUIRED_HEADERS)):
+                    return "danske_bank"
+        except (UnicodeDecodeError, StopIteration):
+            continue
 
     # Try AceMoney (latin-1 + comma)
     try:
