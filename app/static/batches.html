@@ -365,6 +365,7 @@
         </div>
     </div>
 
+    <script src="/static/js/toast.js"></script>
     <script>
         let includeArchived = false;
 
@@ -478,7 +479,7 @@
 
             // Disable button and show loading state
             uploadButton.disabled = true;
-            uploadButton.textContent = 'Uploading...';
+            uploadButton.classList.add('loading');
             errorDiv.style.display = 'none';
 
             try {
@@ -499,15 +500,18 @@
 
                 const batch = await response.json();
 
-                // Close modal and redirect to categorization page
+                // Show success and redirect
+                toast.success(`Batch "${batch.name}" uploaded successfully!`);
                 closeUploadModal();
-                window.location.href = `/static/categorize.html?batch=${batch.id}`;
+                setTimeout(() => {
+                    window.location.href = `/static/categorize.html?batch=${batch.id}`;
+                }, 500);
             } catch (error) {
                 console.error('Upload error:', error);
                 errorDiv.textContent = error.message || 'Failed to upload CSV. Please try again.';
                 errorDiv.style.display = 'block';
                 uploadButton.disabled = false;
-                uploadButton.textContent = 'Upload';
+                uploadButton.classList.remove('loading');
             }
         }
 
