@@ -464,6 +464,101 @@
             font-size: 16px;
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
         @media (max-width: 768px) {
             .transaction-table {
                 font-size: 13px;
@@ -677,6 +772,29 @@
         <div class="note-section">
             <div class="section-title">Note (Optional)</div>
             <textarea class="note-input" id="noteInput" placeholder="Add a note..."></textarea>
+        </div>
+    </div>
+
+    <!-- Create Rule Modal -->
+    <div class="modal" id="createRuleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Create Rule</div>
+                <button class="modal-close" onclick="closeCreateRuleModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label for="rulePattern">Pattern</label>
+                <input type="text" id="rulePattern" placeholder="e.g., Netto, IKEA, Spotify">
+                <div class="form-help">The rule will match any payee containing this text (case-insensitive)</div>
+            </div>
+            <div class="form-group">
+                <label for="ruleCategory">Category</label>
+                <input type="text" id="ruleCategory" readonly>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateRuleModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitCreateRule()">Create Rule</button>
+            </div>
         </div>
     </div>
 
@@ -1128,17 +1246,36 @@
             const words = payee.trim().split(/\s+/);
             const suggestedPattern = words[0]; // First word as default pattern
 
-            // Let user edit the pattern before creating
-            const pattern = prompt(
-                `Create rule for category: ${category}\n\n` +
-                `Edit the pattern to match similar transactions:\n` +
-                `(The rule will match any payee containing this text)`,
-                suggestedPattern
-            );
+            // Show modal with pattern and category
+            document.getElementById('rulePattern').value = suggestedPattern;
+            document.getElementById('ruleCategory').value = category;
+            document.getElementById('createRuleModal').classList.add('visible');
 
-            if (pattern && pattern.trim()) {
-                createRuleFromTransaction(pattern.trim(), category);
+            // Focus the pattern input
+            setTimeout(() => {
+                const input = document.getElementById('rulePattern');
+                input.focus();
+                input.select();
+            }, 100);
+        }
+
+        function closeCreateRuleModal() {
+            document.getElementById('createRuleModal').classList.remove('visible');
+            document.getElementById('rulePattern').value = '';
+            document.getElementById('ruleCategory').value = '';
+        }
+
+        function submitCreateRule() {
+            const pattern = document.getElementById('rulePattern').value.trim();
+            const category = document.getElementById('ruleCategory').value;
+
+            if (!pattern) {
+                toast.error('Pattern cannot be empty');
+                return;
             }
+
+            createRuleFromTransaction(pattern, category);
+            closeCreateRuleModal();
         }
 
         async function createRuleFromTransaction(pattern, category) {
