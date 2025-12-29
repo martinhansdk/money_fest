@@ -114,8 +114,17 @@ def find_similar_by_amount(
     Returns:
         List of transaction dicts
     """
-    min_amount = amount * (1 - tolerance)
-    max_amount = amount * (1 + tolerance)
+    # For negative amounts, we need to reverse min/max
+    # e.g., for -575 with 10% tolerance:
+    #   -575 * 0.9 = -517.5 (less negative, closer to zero)
+    #   -575 * 1.1 = -632.5 (more negative, farther from zero)
+    # BETWEEN requires min <= max, so for negatives: -632.5 to -517.5
+    if amount < 0:
+        min_amount = amount * (1 + tolerance)  # More negative
+        max_amount = amount * (1 - tolerance)  # Less negative
+    else:
+        min_amount = amount * (1 - tolerance)  # Smaller
+        max_amount = amount * (1 + tolerance)  # Larger
 
     cursor = db.execute("""
         SELECT
@@ -221,7 +230,9 @@ def find_surrounding_transactions(
 def get_similar_transactions(
     db: sqlite3.Connection,
     user_id: int,
-    transaction_id: int
+    transaction_id: int,
+    min_similarity: float = 0.6,
+    tolerance: float = 0.10
 ) -> Dict:
     """
     Get all similar transactions for a given transaction
@@ -231,6 +242,8 @@ def get_similar_transactions(
         db: Database connection
         user_id: User ID to scope search
         transaction_id: Transaction ID to find similar for
+        min_similarity: Minimum similarity for payee matching (default 0.6)
+        tolerance: Tolerance for amount matching (default 0.10 = ±10%)
 
     Returns:
         Dict with by_payee, by_amount, and surrounding lists
@@ -273,14 +286,14 @@ def get_similar_transactions(
     by_payee = find_similar_by_payee(
         db, user_id, transaction['payee'],
         exclude_transaction_id=transaction_id,
-        min_similarity=0.6,
+        min_similarity=min_similarity,
         limit=30
     )
 
     by_amount = find_similar_by_amount(
         db, user_id, float(transaction['amount']),
         exclude_transaction_id=transaction_id,
-        tolerance=0.10,
+        tolerance=tolerance,
         limit=30
     )
 

@@ -942,7 +942,54 @@
                 <button class="similar-tab" data-tab="surrounding" onclick="switchSimilarTab('surrounding')">Nearby (Date)</button>
             </div>
 
+            <!-- Reference Transaction -->
+            <div id="referenceTransaction" style="padding: 16px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 2px solid #dee2e6; border-left: 4px solid #6366f1;">
+                <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Reference Transaction</div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                    <div style="flex: 1;">
+                        <div id="refPayee" style="font-size: 15px; font-weight: 600; color: #212529; margin-bottom: 4px;"></div>
+                        <div id="refMeta" style="font-size: 13px; color: #6c757d;"></div>
+                    </div>
+                    <div id="refAmount" style="font-size: 16px; font-weight: 700;"></div>
+                </div>
+            </div>
+
+            <!-- Select All and Similarity Controls -->
+            <div style="padding: 12px 20px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="selectAllSimilar" onclick="toggleSelectAllSimilar()" style="cursor: pointer; width: 18px; height: 18px;">
+                    <span style="font-size: 14px; font-weight: 500; color: #333;">Select All</span>
+                </label>
+
+                <div id="similarityControl" style="display: none; flex: 1; max-width: 300px;">
+                    <label style="font-size: 13px; font-weight: 500; color: #666; margin-bottom: 4px; display: block;">
+                        Similarity: <span id="similarityValue">60</span>%
+                    </label>
+                    <input type="range" id="similaritySlider" min="0" max="100" value="60"
+                           oninput="updateSimilarityValue(this.value)"
+                           onchange="fetchSimilarWithThreshold(this.value)"
+                           style="width: 100%; cursor: pointer;">
+                </div>
+
+                <div id="toleranceControl" style="display: none; flex: 1; max-width: 300px;">
+                    <label style="font-size: 13px; font-weight: 500; color: #666; margin-bottom: 4px; display: block;">
+                        Amount Tolerance: ±<span id="toleranceValue">10</span>%
+                    </label>
+                    <input type="range" id="toleranceSlider" min="0" max="50" value="10"
+                           oninput="updateToleranceValue(this.value)"
+                           onchange="fetchSimilarWithTolerance(this.value)"
+                           style="width: 100%; cursor: pointer;">
+                </div>
+            </div>
+
             <div id="similarContent" class="similar-list"></div>
+
+            <div id="similarCategorySection" style="margin-top: 20px; display: none;">
+                <label for="similarCategory" style="display: block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px;">Category for Selected Transactions</label>
+                <select id="similarCategory" style="width: 100%; padding: 12px 16px; font-size: 14px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box;">
+                    <option value="">Select a category...</option>
+                </select>
+            </div>
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeSimilarModal()">Close</button>
@@ -1516,10 +1563,27 @@
         let similarData = null;
         let currentSimilarTab = 'payee';
         let selectedSimilar = new Set();
+        let currentSimilarityThreshold = 60;
+        let similarityFetchTimeout = null;
+        let currentAmountTolerance = 10;
+        let toleranceFetchTimeout = null;
 
-        async function showSimilar(transactionId) {
+        async function showSimilar(transactionId, minSimilarity = null, tolerance = null) {
             try {
-                const response = await fetch(`/transactions/${transactionId}/similar`, {
+                // Build URL with optional similarity and tolerance parameters
+                let url = `/transactions/${transactionId}/similar`;
+                const params = new URLSearchParams();
+                if (minSimilarity !== null) {
+                    params.append('min_similarity', minSimilarity / 100);
+                }
+                if (tolerance !== null) {
+                    params.append('tolerance', tolerance / 100);
+                }
+                if (params.toString()) {
+                    url += `?${params.toString()}`;
+                }
+
+                const response = await fetch(url, {
                     credentials: 'include'
                 });
 
@@ -1528,17 +1592,56 @@
                 }
 
                 similarData = await response.json();
-                currentSimilarTab = 'payee';
-                selectedSimilar.clear();
 
-                // Reset tabs
-                document.querySelectorAll('.similar-tab').forEach(tab => {
-                    tab.classList.remove('active');
+                // Only reset these on initial load (when both params are null)
+                if (minSimilarity === null && tolerance === null) {
+                    currentSimilarTab = 'payee';
+                    selectedSimilar.clear();
+                    currentSimilarityThreshold = 60;
+                    currentAmountTolerance = 10;
+
+                    // Reset tabs
+                    document.querySelectorAll('.similar-tab').forEach(tab => {
+                        tab.classList.remove('active');
+                    });
+                    document.querySelector('.similar-tab[data-tab="payee"]').classList.add('active');
+
+                    // Reset similarity slider
+                    document.getElementById('similaritySlider').value = 60;
+                    document.getElementById('similarityValue').textContent = '60';
+
+                    // Reset tolerance slider
+                    document.getElementById('toleranceSlider').value = 10;
+                    document.getElementById('toleranceValue').textContent = '10';
+                }
+
+                // Populate category dropdown
+                const categorySelect = document.getElementById('similarCategory');
+                categorySelect.innerHTML = '<option value="">Select a category...</option>';
+                allCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.full_path;
+                    option.textContent = cat.full_path;
+                    // Pre-select the reference transaction's category if it has one
+                    if (similarData.transaction.category && cat.full_path === similarData.transaction.category) {
+                        option.selected = true;
+                    }
+                    categorySelect.appendChild(option);
                 });
-                document.querySelector('.similar-tab[data-tab="payee"]').classList.add('active');
+
+                // Populate reference transaction display
+                document.getElementById('refPayee').textContent = similarData.transaction.payee;
+                document.getElementById('refMeta').textContent = `${formatDate(similarData.transaction.date)} • ${similarData.transaction.batch_name}${similarData.transaction.category ? ' • ' + similarData.transaction.category : ' • Not categorized'}`;
+                const refAmountEl = document.getElementById('refAmount');
+                const amount = parseFloat(similarData.transaction.amount);
+                refAmountEl.textContent = (amount >= 0 ? '+' : '') + Math.abs(amount).toFixed(2);
+                refAmountEl.className = amount < 0 ? 'amount-expense' : 'amount-income';
 
                 // Show modal
                 document.getElementById('similarModal').classList.add('visible');
+
+                // Show/hide similarity control based on current tab
+                updateSimilarityControlVisibility();
 
                 // Render similar transactions
                 renderSimilarTransactions();
@@ -1563,10 +1666,10 @@
             });
             document.querySelector(`.similar-tab[data-tab="${tab}"]`).classList.add('active');
 
-            // Clear selection when switching tabs
-            selectedSimilar.clear();
+            // Show/hide similarity control based on tab
+            updateSimilarityControlVisibility();
 
-            // Render new content
+            // Render new content (selections are preserved)
             renderSimilarTransactions();
         }
 
@@ -1615,8 +1718,121 @@
                 `;
             }).join('');
 
-            // Show categorize button if there are selections
-            categorizeSimilarBtn.style.display = selectedSimilar.size > 0 ? 'inline-block' : 'none';
+            // Show categorize button and category section if there are selections
+            const categorySection = document.getElementById('similarCategorySection');
+            if (selectedSimilar.size > 0) {
+                categorizeSimilarBtn.style.display = 'inline-block';
+                categorySection.style.display = 'block';
+            } else {
+                categorizeSimilarBtn.style.display = 'none';
+                categorySection.style.display = 'none';
+            }
+
+            // Update select all checkbox state
+            updateSelectAllCheckbox(items);
+        }
+
+        function updateSelectAllCheckbox(items) {
+            const selectAllCheckbox = document.getElementById('selectAllSimilar');
+            if (!items || items.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+                return;
+            }
+
+            const selectedCount = items.filter(item => selectedSimilar.has(item.id)).length;
+            if (selectedCount === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (selectedCount === items.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        function toggleSelectAllSimilar() {
+            if (!similarData) return;
+
+            let items = [];
+            if (currentSimilarTab === 'payee') {
+                items = similarData.by_payee;
+            } else if (currentSimilarTab === 'amount') {
+                items = similarData.by_amount;
+            } else if (currentSimilarTab === 'surrounding') {
+                items = similarData.surrounding;
+            }
+
+            const selectAllCheckbox = document.getElementById('selectAllSimilar');
+
+            if (selectAllCheckbox.checked) {
+                // Select all items in current tab
+                items.forEach(item => selectedSimilar.add(item.id));
+            } else {
+                // Deselect all items in current tab
+                items.forEach(item => selectedSimilar.delete(item.id));
+            }
+
+            renderSimilarTransactions();
+        }
+
+        function updateSimilarityValue(value) {
+            document.getElementById('similarityValue').textContent = value;
+        }
+
+        function fetchSimilarWithThreshold(threshold) {
+            if (!similarData || !similarData.transaction) return;
+
+            // Clear any pending timeout
+            if (similarityFetchTimeout) {
+                clearTimeout(similarityFetchTimeout);
+            }
+
+            // Debounce the API call by 500ms
+            similarityFetchTimeout = setTimeout(async () => {
+                currentSimilarityThreshold = parseInt(threshold);
+                await showSimilar(similarData.transaction.id, currentSimilarityThreshold, null);
+            }, 500);
+        }
+
+        function updateToleranceValue(value) {
+            document.getElementById('toleranceValue').textContent = value;
+        }
+
+        function fetchSimilarWithTolerance(tolerance) {
+            if (!similarData || !similarData.transaction) return;
+
+            // Clear any pending timeout
+            if (toleranceFetchTimeout) {
+                clearTimeout(toleranceFetchTimeout);
+            }
+
+            // Debounce the API call by 500ms
+            toleranceFetchTimeout = setTimeout(async () => {
+                currentAmountTolerance = parseInt(tolerance);
+                await showSimilar(similarData.transaction.id, null, currentAmountTolerance);
+            }, 500);
+        }
+
+        function updateSimilarityControlVisibility() {
+            const similarityControl = document.getElementById('similarityControl');
+            const toleranceControl = document.getElementById('toleranceControl');
+
+            // Only show similarity control on "By Payee" tab
+            if (currentSimilarTab === 'payee') {
+                similarityControl.style.display = 'flex';
+            } else {
+                similarityControl.style.display = 'none';
+            }
+
+            // Only show tolerance control on "By Amount" tab
+            if (currentSimilarTab === 'amount') {
+                toleranceControl.style.display = 'flex';
+            } else {
+                toleranceControl.style.display = 'none';
+            }
         }
 
         function toggleSimilarItem(itemId) {
@@ -1634,10 +1850,11 @@
                 return;
             }
 
-            // Get the current transaction's category
-            const category = similarData.transaction.category;
+            // Get the selected category from dropdown
+            const categorySelect = document.getElementById('similarCategory');
+            const category = categorySelect.value;
             if (!category) {
-                toast.error('Reference transaction must have a category first');
+                toast.error('Please select a category');
                 return;
             }
 
