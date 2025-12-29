@@ -253,6 +253,31 @@
             border-color: #667eea;
         }
 
+        .show-similar-btn {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            font-size: 11px;
+            background: white;
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+            vertical-align: middle;
+        }
+
+        tbody tr:hover .show-similar-btn {
+            opacity: 1;
+        }
+
+        .show-similar-btn:hover {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
         .category-empty {
             color: #999;
             font-style: italic;
@@ -559,6 +584,111 @@
             margin-top: 24px;
         }
 
+        /* Similar Transactions Modal */
+        #similarModal .modal-content {
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .similar-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .similar-tab {
+            padding: 10px 16px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .similar-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .similar-tab:hover {
+            color: #667eea;
+        }
+
+        .similar-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .similar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .similar-item:hover {
+            background: #f8f8f8;
+            border-color: #667eea;
+        }
+
+        .similar-item.selected {
+            background: #f0f0ff;
+            border-color: #667eea;
+        }
+
+        .similar-item-checkbox {
+            flex-shrink: 0;
+        }
+
+        .similar-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .similar-item-payee {
+            font-weight: 500;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .similar-item-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .similar-item-amount {
+            flex-shrink: 0;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .similar-item-similarity {
+            flex-shrink: 0;
+            font-size: 11px;
+            color: #4CAF50;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .similar-empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
         @media (max-width: 768px) {
             .transaction-table {
                 font-size: 13px;
@@ -798,6 +928,29 @@
         </div>
     </div>
 
+    <!-- Similar Transactions Modal -->
+    <div class="modal" id="similarModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Similar Transactions</div>
+                <button class="modal-close" onclick="closeSimilarModal()">×</button>
+            </div>
+
+            <div class="similar-tabs">
+                <button class="similar-tab active" data-tab="payee" onclick="switchSimilarTab('payee')">By Payee</button>
+                <button class="similar-tab" data-tab="amount" onclick="switchSimilarTab('amount')">By Amount</button>
+                <button class="similar-tab" data-tab="surrounding" onclick="switchSimilarTab('surrounding')">Nearby (Date)</button>
+            </div>
+
+            <div id="similarContent" class="similar-list"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeSimilarModal()">Close</button>
+                <button type="button" class="btn btn-primary" id="categorizeSimilarBtn" onclick="categorizeSimilar()" style="display: none;">Categorize Selected</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/js/toast.js"></script>
     <script src="/static/js/websocket.js"></script>
     <script>
@@ -1029,7 +1182,10 @@
                                onchange="toggleTransaction(${t.id})">
                     </td>
                     <td class="date-cell">${formatDate(t.date)}</td>
-                    <td class="payee-cell">${escapeHtml(t.payee)}</td>
+                    <td class="payee-cell">
+                        ${escapeHtml(t.payee)}
+                        <button class="show-similar-btn" onclick="event.stopPropagation(); showSimilar(${t.id})" title="Find similar transactions">⚡ Similar</button>
+                    </td>
                     <td class="amount-cell ${t.amount < 0 ? 'amount-expense' : 'amount-income'}">
                         ${formatAmount(t.amount)}
                     </td>
@@ -1354,6 +1510,164 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ===== Similar Transactions =====
+        let similarData = null;
+        let currentSimilarTab = 'payee';
+        let selectedSimilar = new Set();
+
+        async function showSimilar(transactionId) {
+            try {
+                const response = await fetch(`/transactions/${transactionId}/similar`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load similar transactions');
+                }
+
+                similarData = await response.json();
+                currentSimilarTab = 'payee';
+                selectedSimilar.clear();
+
+                // Reset tabs
+                document.querySelectorAll('.similar-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelector('.similar-tab[data-tab="payee"]').classList.add('active');
+
+                // Show modal
+                document.getElementById('similarModal').classList.add('visible');
+
+                // Render similar transactions
+                renderSimilarTransactions();
+            } catch (error) {
+                console.error('Error loading similar transactions:', error);
+                toast.error('Failed to load similar transactions');
+            }
+        }
+
+        function closeSimilarModal() {
+            document.getElementById('similarModal').classList.remove('visible');
+            similarData = null;
+            selectedSimilar.clear();
+        }
+
+        function switchSimilarTab(tab) {
+            currentSimilarTab = tab;
+
+            // Update tab buttons
+            document.querySelectorAll('.similar-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.similar-tab[data-tab="${tab}"]`).classList.add('active');
+
+            // Clear selection when switching tabs
+            selectedSimilar.clear();
+
+            // Render new content
+            renderSimilarTransactions();
+        }
+
+        function renderSimilarTransactions() {
+            if (!similarData) return;
+
+            const container = document.getElementById('similarContent');
+            const categorizeSimilarBtn = document.getElementById('categorizeSimilarBtn');
+            let items = [];
+
+            if (currentSimilarTab === 'payee') {
+                items = similarData.by_payee;
+            } else if (currentSimilarTab === 'amount') {
+                items = similarData.by_amount;
+            } else if (currentSimilarTab === 'surrounding') {
+                items = similarData.surrounding;
+            }
+
+            if (items.length === 0) {
+                container.innerHTML = '<div class="similar-empty">No similar transactions found</div>';
+                categorizeSimilarBtn.style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = items.map(item => {
+                const isSelected = selectedSimilar.has(item.id);
+                const showSimilarity = currentSimilarTab === 'payee' && item.similarity;
+
+                return `
+                    <div class="similar-item ${isSelected ? 'selected' : ''}" onclick="toggleSimilarItem(${item.id})">
+                        <div class="similar-item-checkbox">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSimilarItem(${item.id})">
+                        </div>
+                        <div class="similar-item-info">
+                            <div class="similar-item-payee">${escapeHtml(item.payee)}</div>
+                            <div class="similar-item-meta">
+                                ${formatDate(item.date)} • ${escapeHtml(item.batch_name)}
+                                ${item.category ? ` • ${escapeHtml(item.category)}` : ' • Not categorized'}
+                            </div>
+                        </div>
+                        ${showSimilarity ? `<div class="similar-item-similarity">${Math.round(item.similarity * 100)}%</div>` : ''}
+                        <div class="similar-item-amount ${parseFloat(item.amount) < 0 ? 'amount-expense' : 'amount-income'}">
+                            ${formatAmount(item.amount)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Show categorize button if there are selections
+            categorizeSimilarBtn.style.display = selectedSimilar.size > 0 ? 'inline-block' : 'none';
+        }
+
+        function toggleSimilarItem(itemId) {
+            if (selectedSimilar.has(itemId)) {
+                selectedSimilar.delete(itemId);
+            } else {
+                selectedSimilar.add(itemId);
+            }
+            renderSimilarTransactions();
+        }
+
+        async function categorizeSimilar() {
+            if (selectedSimilar.size === 0) {
+                toast.error('No transactions selected');
+                return;
+            }
+
+            // Get the current transaction's category
+            const category = similarData.transaction.category;
+            if (!category) {
+                toast.error('Reference transaction must have a category first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/transactions/bulk', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        transaction_ids: Array.from(selectedSimilar),
+                        category: category
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to categorize transactions');
+                }
+
+                const result = await response.json();
+                toast.success(`Categorized ${result.updated} transaction(s) as ${category}`);
+
+                // Reload transactions in current batch
+                await loadTransactions();
+
+                // Close modal
+                closeSimilarModal();
+            } catch (error) {
+                console.error('Error categorizing similar transactions:', error);
+                toast.error('Failed to categorize transactions');
+            }
         }
     </script>
 </body>
