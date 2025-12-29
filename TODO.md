@@ -174,21 +174,23 @@
 
 ---
 
-## Phase 6: Similar Transactions
+## Phase 6: Similar Transactions ✅ **COMPLETE**
 
-### Similar Backend
-- [ ] Find similar by payee (fuzzy match)
-- [ ] Find similar by amount (±10%)
-- [ ] Get surrounding transactions (by date)
-- [ ] Include transactions from all batches
+### Similar Backend ✅
+- [x] Find similar by payee (fuzzy match)
+- [x] Find similar by amount (±10%)
+- [x] Get surrounding transactions (by date)
+- [x] Include transactions from all batches
 
-### Similar UI
-- [ ] "Show similar" button on transaction
-- [ ] Similar transactions panel/modal
-- [ ] Toggle: by payee / by amount
-- [ ] Display with batch name, category
-- [ ] Selectable for batch categorization
-- [ ] "Show context" for surrounding transactions
+### Similar UI ✅
+- [x] "Show similar" button on transaction
+- [x] Similar transactions panel/modal
+- [x] Toggle: by payee / by amount / by date
+- [x] Display with batch name, category
+- [x] Selectable for batch categorization
+- [x] "Show context" for surrounding transactions
+
+**Phase 6 Status:** All 10 tasks complete. Similar transactions feature with fuzzy matching and bulk categorization implemented.
 
 ---
 
