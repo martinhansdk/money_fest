@@ -181,6 +181,9 @@
 - [x] Find similar by amount (±10%)
 - [x] Get surrounding transactions (by date)
 - [x] Include transactions from all batches
+- [x] Configurable similarity threshold (API parameter)
+- [x] Configurable amount tolerance (API parameter)
+- [x] Fix negative amount tolerance bug
 
 ### Similar UI ✅
 - [x] "Show similar" button on transaction
@@ -189,8 +192,12 @@
 - [x] Display with batch name, category
 - [x] Selectable for batch categorization
 - [x] "Show context" for surrounding transactions
+- [x] Reference transaction display at top of modal
+- [x] Similarity slider (0-100%) for payee matching
+- [x] Amount tolerance slider (0-50%) for amount matching
+- [x] Context-aware slider visibility (per tab)
 
-**Phase 6 Status:** All 10 tasks complete. Similar transactions feature with fuzzy matching and bulk categorization implemented.
+**Phase 6 Status:** All 17 tasks complete. Similar transactions feature with configurable fuzzy matching, tolerance controls, and bulk categorization implemented.
 
 ---
 

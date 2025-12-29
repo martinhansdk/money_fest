@@ -169,8 +169,10 @@ CREATE INDEX idx_rules_pattern ON rules(pattern);
 
 #### Similar Transactions
 - `GET /transactions/{id}/similar` - Get similar transactions
-  - Query params: `by=payee|amount`, `threshold=0.1` (for amount)
-- `GET /transactions/{id}/surrounding` - Get nearby transactions by date
+  - Query params:
+    - `min_similarity` (float, 0.0-1.0, default 0.6) - Minimum similarity for fuzzy payee matching
+    - `tolerance` (float, 0.0-1.0, default 0.10) - Tolerance for amount matching (±%)
+  - Returns: Dict with `by_payee`, `by_amount`, `surrounding`, and reference `transaction`
 
 ### WebSocket
 
