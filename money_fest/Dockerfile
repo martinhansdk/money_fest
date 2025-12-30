@@ -1,5 +1,6 @@
-# Use Home Assistant's build argument for multi-arch support
+# Use Home Assistant's build arguments for multi-arch support
 ARG BUILD_FROM
+ARG BUILD_VERSION
 FROM ${BUILD_FROM}
 
 # Set working directory

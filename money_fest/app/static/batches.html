@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Money Fest - Batches</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            text-align: left;
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: auto;
+        }
+
+        .batch-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .batch-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .batch-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .batch-card.archived {
+            opacity: 0.7;
+        }
+
+        .batch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .batch-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .batch-meta {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .batch-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-in-progress {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-archived {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .progress-section {
+            margin-top: 16px;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .empty-state {
+            background: white;
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-state h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .upload-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .error-text {
+            color: #d32f2f;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-container label {
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .batch-card {
+                padding: 16px;
+            }
+
+            .batch-name {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Batches</h1>
+            <div class="header-actions">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="includeArchived">
+                    <label for="includeArchived">Show archived</label>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/static/users.html'">Users</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/static/rules.html'">Rules</button>
+                <button class="btn btn-primary" onclick="showUploadModal()">Upload CSV</button>
+            </div>
+        </div>
+
+        <div id="batchList" class="batch-list">
+            <div class="loading">Loading batches...</div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Upload CSV</div>
+                <button class="modal-close" onclick="closeUploadModal()">×</button>
+            </div>
+            <form id="uploadForm" onsubmit="handleUpload(event)">
+                <div class="form-group">
+                    <label for="batchName">Batch Name</label>
+                    <input type="text" id="batchName" name="batchName" required placeholder="e.g., November 2024">
+                </div>
+                <div class="form-group">
+                    <label for="csvFile">CSV File</label>
+                    <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+                    <div class="upload-info">Supports AceMoney (latin-1) and Danske Bank (UTF-8) formats</div>
+                </div>
+                <div id="uploadError" class="error-text" style="display: none;"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="uploadButton">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/toast.js"></script>
+    <script>
+        let includeArchived = false;
+
+        // Load batches on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBatches();
+
+            // Handle archive checkbox
+            document.getElementById('includeArchived').addEventListener('change', (e) => {
+                includeArchived = e.target.checked;
+                loadBatches();
+            });
+        });
+
+        async function loadBatches() {
+            try {
+                const response = await fetch(`/batches?include_archived=${includeArchived}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/static/index.html';
+                        return;
+                    }
+                    throw new Error('Failed to load batches');
+                }
+
+                const batches = await response.json();
+                renderBatches(batches);
+            } catch (error) {
+                console.error('Error loading batches:', error);
+                document.getElementById('batchList').innerHTML = `
+                    <div class="empty-state">
+                        <h2>Error loading batches</h2>
+                        <p>Please try refreshing the page</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderBatches(batches) {
+            const batchList = document.getElementById('batchList');
+
+            if (batches.length === 0) {
+                batchList.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No batches yet</h2>
+                        <p>Upload a CSV file to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            batchList.innerHTML = batches.map(batch => `
+                <div class="batch-card ${batch.status === 'archived' ? 'archived' : ''}"
+                     onclick="openBatch(${batch.id})">
+                    <div class="batch-header">
+                        <div>
+                            <div class="batch-name">${escapeHtml(batch.name)}</div>
+                            <div class="batch-meta">
+                                ${batch.date_range_start} to ${batch.date_range_end}
+                            </div>
+                        </div>
+                        <span class="batch-status status-${batch.status.replace('_', '-')}">
+                            ${batch.status === 'in_progress' ? 'In Progress' : 'Archived'}
+                        </span>
+                    </div>
+                    <div class="progress-section">
+                        <div class="progress-text">
+                            <span>${batch.categorized_count}/${batch.total_count} categorized</span>
+                            <span>${batch.progress_percent.toFixed(0)}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${batch.progress_percent}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openBatch(batchId) {
+            window.location.href = `/static/categorize.html?batch=${batchId}`;
+        }
+
+        function showUploadModal() {
+            document.getElementById('uploadModal').classList.add('visible');
+            document.getElementById('batchName').value = '';
+            document.getElementById('csvFile').value = '';
+            document.getElementById('uploadError').style.display = 'none';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('visible');
+        }
+
+        async function handleUpload(event) {
+            event.preventDefault();
+
+            const batchName = document.getElementById('batchName').value.trim();
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            const uploadButton = document.getElementById('uploadButton');
+            const errorDiv = document.getElementById('uploadError');
+
+            if (!file) {
+                errorDiv.textContent = 'Please select a CSV file';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Disable button and show loading state
+            uploadButton.disabled = true;
+            uploadButton.classList.add('loading');
+            errorDiv.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('name', batchName);
+                formData.append('file', file);
+
+                const response = await fetch('/batches', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Upload failed');
+                }
+
+                const batch = await response.json();
+
+                // Show success and redirect
+                toast.success(`Batch "${batch.name}" uploaded successfully!`);
+                closeUploadModal();
+                setTimeout(() => {
+                    window.location.href = `/static/categorize.html?batch=${batch.id}`;
+                }, 500);
+            } catch (error) {
+                console.error('Upload error:', error);
+                errorDiv.textContent = error.message || 'Failed to upload CSV. Please try again.';
+                errorDiv.style.display = 'block';
+                uploadButton.disabled = false;
+                uploadButton.classList.remove('loading');
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            window.location.href = '/static/index.html';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
