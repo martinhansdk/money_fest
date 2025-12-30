@@ -83,7 +83,7 @@ Default port is 1111 (configurable in add-on options).
 
 ## Support
 
-For issues and questions, visit: [GitHub Issues](https://github.com/yourusername/money_fest/issues)
+For issues and questions, visit: [GitHub Issues](https://github.com/martinhansdk/money_fest/issues)
 
 ## Documentation
 

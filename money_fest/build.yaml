@@ -5,7 +5,7 @@ build_from:
 labels:
   org.opencontainers.image.title: "Money Fest"
   org.opencontainers.image.description: "Collaborative bank transaction categorizer"
-  org.opencontainers.image.source: "https://github.com/yourusername/money_fest"
+  org.opencontainers.image.source: "https://github.com/martinhansdk/money_fest"
   org.opencontainers.image.licenses: "Private"
 args:
   PYTHON_VERSION: "3.11"

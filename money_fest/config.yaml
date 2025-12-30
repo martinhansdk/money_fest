@@ -2,7 +2,7 @@ name: Money Fest
 version: "1.0.0"
 slug: money_fest
 description: "Collaborative bank transaction categorizer for couples"
-url: "https://github.com/yourusername/money_fest"
+url: "https://github.com/martinhansdk/money_fest"
 arch:
   - amd64
   - aarch64
@@ -33,4 +33,3 @@ schema:
   log_level: list(debug|info|warning|error)
   auto_import_categories: bool
   ssl_enabled: bool
-image: "ghcr.io/{arch}-money-fest"

@@ -496,7 +496,7 @@ Money Fest uses **separate port access** (not Ingress), which means:
 
 ## Support & Development
 
-- **GitHub:** [yourusername/money_fest](https://github.com/yourusername/money_fest)
+- **GitHub:** [martinhansdk/money_fest](https://github.com/martinhansdk/money_fest)
 - **Issues:** Report bugs and request features on GitHub
 - **Documentation:** Full docs available in repository
 
