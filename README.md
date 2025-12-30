@@ -263,7 +263,7 @@ Money Fest can be installed as a Home Assistant add-on for seamless integration 
    - Create your first user via web form
    - Log in and start categorizing!
 
-See [hassio-addon/DOCS.md](hassio-addon/DOCS.md) for complete documentation.
+See [money_fest/DOCS.md](money_fest/DOCS.md) for complete documentation.
 
 ## Configuration
 
