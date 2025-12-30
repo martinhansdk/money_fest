@@ -187,8 +187,9 @@ bashio::log.info "Log level: $UVICORN_LOG_LEVEL"
 # Import categories if first run and enabled
 if [ "$FIRST_RUN" = true ] && [ "$AUTO_IMPORT_CATEGORIES" = true ]; then
     # Start uvicorn in background to initialize database
+    # Use port 8080 internally (same as production)
     bashio::log.info "Starting server briefly to initialize database..."
-    uvicorn app.main:app --host 0.0.0.0 --port "$PORT" &
+    uvicorn app.main:app --host 0.0.0.0 --port 8080 &
     UVICORN_PID=$!
 
     # Wait for server to start
@@ -211,12 +212,16 @@ fi
 # Start uvicorn with appropriate settings
 bashio::log.info "Money Fest is ready!"
 
+# Container always listens on port 8080 internally
+# The PORT variable is only used for display (external port mapping)
+INTERNAL_PORT=8080
+
 if [ "$SSL_ENABLED" = "true" ]; then
     bashio::log.info "Access the web interface at https://[YOUR-HA-IP]:$PORT"
 
     exec uvicorn app.main:app \
         --host 0.0.0.0 \
-        --port "$PORT" \
+        --port "$INTERNAL_PORT" \
         --log-level "$UVICORN_LOG_LEVEL" \
         --ssl-keyfile "$SSL_KEY" \
         --ssl-certfile "$SSL_CERT" \
@@ -226,7 +231,7 @@ else
 
     exec uvicorn app.main:app \
         --host 0.0.0.0 \
-        --port "$PORT" \
+        --port "$INTERNAL_PORT" \
         --log-level "$UVICORN_LOG_LEVEL" \
         --no-access-log
 fi

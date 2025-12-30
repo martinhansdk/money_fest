@@ -2,6 +2,13 @@
 
 All notable changes to this add-on will be documented in this file.
 
+## [1.0.2] - 2025-12-30
+
+### Fixed
+- Port mapping issue: App now correctly listens on port 8080 internally
+- Container port mapping (8080:1111) now works as expected
+- Users can now connect to the add-on on the configured external port
+
 ## [1.0.1] - 2025-12-30
 
 ### Fixed
