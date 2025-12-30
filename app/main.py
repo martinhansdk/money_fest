@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, batches, transactions, categories, rules, websocket, similar
+from app.routers import auth, batches, transactions, categories, rules, websocket, similar, setup, users
 
 
 # Create FastAPI application
@@ -31,7 +31,9 @@ app.add_middleware(
 
 
 # Include routers
+app.include_router(setup.router, tags=["setup"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(batches.router, prefix="/batches", tags=["batches"])
 app.include_router(transactions.router, tags=["transactions"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])

@@ -1,12 +1,14 @@
 """
 Authentication and session management
 Uses in-memory session storage for simplicity (2 users)
+Sessions are cryptographically signed using itsdangerous
 """
 
 import secrets
 import sqlite3
 from typing import Optional
 from fastapi import Request, HTTPException, status, Depends
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from app.config import settings
 from app.database import get_db
 from app.services.user import get_user_by_id
@@ -16,54 +18,84 @@ from app.services.user import get_user_by_id
 # Sessions are lost on restart (acceptable for 2-user home use)
 _sessions: dict[str, int] = {}
 
+# Serializer for signing session tokens
+_serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+
 
 def create_session(user_id: int) -> str:
     """
-    Create a new session for a user
+    Create a new session for a user and return a signed token
 
     Args:
         user_id: ID of the user to create session for
 
     Returns:
-        Session ID (secure random token)
+        Signed session token (cryptographically signed with SECRET_KEY)
     """
+    # Generate random session ID
     session_id = secrets.token_urlsafe(32)
+
+    # Store session in memory
     _sessions[session_id] = user_id
-    return session_id
+
+    # Sign the session ID with the secret key
+    signed_token = _serializer.dumps(session_id, salt='session')
+
+    return signed_token
 
 
-def verify_session(session_id: str) -> Optional[int]:
+def verify_session(signed_token: str) -> Optional[int]:
     """
-    Verify a session and return the user ID
+    Verify a signed session token and return the user ID
 
     Args:
-        session_id: Session ID to verify
+        signed_token: Signed session token to verify
 
     Returns:
         User ID if session is valid, None otherwise
     """
-    return _sessions.get(session_id)
+    try:
+        # Verify signature and extract session ID
+        # max_age is in seconds (matches SESSION_MAX_AGE)
+        session_id = _serializer.loads(
+            signed_token,
+            salt='session',
+            max_age=settings.SESSION_MAX_AGE
+        )
+
+        # Look up user ID from in-memory storage
+        return _sessions.get(session_id)
+
+    except (BadSignature, SignatureExpired):
+        # Token was tampered with or expired
+        return None
 
 
-def delete_session(session_id: str) -> None:
+def delete_session(signed_token: str) -> None:
     """
     Delete a session (logout)
 
     Args:
-        session_id: Session ID to delete
+        signed_token: Signed session token to delete
     """
-    _sessions.pop(session_id, None)
+    try:
+        # Extract session ID from signed token
+        session_id = _serializer.loads(signed_token, salt='session')
+        _sessions.pop(session_id, None)
+    except (BadSignature, SignatureExpired):
+        # Token invalid, nothing to delete
+        pass
 
 
 def get_session_from_request(request: Request) -> Optional[str]:
     """
-    Extract session ID from request cookie
+    Extract signed session token from request cookie
 
     Args:
         request: FastAPI request object
 
     Returns:
-        Session ID if found in cookie, None otherwise
+        Signed session token if found in cookie, None otherwise
     """
     return request.cookies.get(settings.SESSION_COOKIE_NAME)
 

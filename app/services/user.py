@@ -123,6 +123,23 @@ def get_user_by_id(db: sqlite3.Connection, user_id: int) -> Optional[dict]:
     return dict_from_row(row) if row else None
 
 
+def get_all_users(db: sqlite3.Connection) -> list[dict]:
+    """
+    Get all users
+
+    Args:
+        db: Database connection
+
+    Returns:
+        List of user dicts (with password_hash for internal use)
+    """
+    cursor = db.execute(
+        "SELECT id, username, password_hash, created_at FROM users ORDER BY created_at"
+    )
+    rows = cursor.fetchall()
+    return [dict_from_row(row) for row in rows]
+
+
 def authenticate_user(db: sqlite3.Connection, username: str, password: str) -> Optional[dict]:
     """
     Authenticate a user with username and password

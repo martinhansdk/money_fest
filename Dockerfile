@@ -13,6 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY tests/ ./tests/
 COPY categories.txt .
+COPY start.sh .
+
+# Make start script executable
+RUN chmod +x /app/start.sh
 
 # Create data directory
 RUN mkdir -p /app/data && chmod 777 /app/data
@@ -21,4 +25,4 @@ RUN mkdir -p /app/data && chmod 777 /app/data
 EXPOSE 8080
 
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["/app/start.sh"]

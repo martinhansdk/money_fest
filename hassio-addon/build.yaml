@@ -1,0 +1,11 @@
+build_from:
+  amd64: "ghcr.io/home-assistant/amd64-base-python:3.11-alpine3.19"
+  aarch64: "ghcr.io/home-assistant/aarch64-base-python:3.11-alpine3.19"
+  armv7: "ghcr.io/home-assistant/armv7-base-python:3.11-alpine3.19"
+labels:
+  org.opencontainers.image.title: "Money Fest"
+  org.opencontainers.image.description: "Collaborative bank transaction categorizer"
+  org.opencontainers.image.source: "https://github.com/yourusername/money_fest"
+  org.opencontainers.image.licenses: "Private"
+args:
+  PYTHON_VERSION: "3.11"

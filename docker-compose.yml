@@ -5,14 +5,18 @@ services:
     ports:
       - "1111:8080"
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data  # Database and SSL certificates (auto-generated in data/certs/)
     environment:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DATABASE_PATH=/app/data/categorizer.db
       - SESSION_MAX_AGE=2592000
+      # SSL Configuration (optional - certificates auto-generated on first run if enabled)
+      - SSL_ENABLED=${SSL_ENABLED:-false}
+      - SSL_CERT=/app/data/certs/cert.pem
+      - SSL_KEY=/app/data/certs/key.pem
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "-k", "${SSL_ENABLED:-false:-http://localhost:8080/health}"]
       interval: 30s
       timeout: 10s
       retries: 3

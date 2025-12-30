@@ -1,0 +1,36 @@
+name: Money Fest
+version: "1.0.0"
+slug: money_fest
+description: "Collaborative bank transaction categorizer for couples"
+url: "https://github.com/yourusername/money_fest"
+arch:
+  - amd64
+  - aarch64
+  - armv7
+init: false
+startup: application
+boot: auto
+ports:
+  8080/tcp: 1111
+ports_description:
+  8080/tcp: "Money Fest web interface"
+webui: "http://[HOST]:[PORT:1111]"
+ingress: false
+panel_icon: mdi:cash-multiple
+map:
+  - share:rw
+options:
+  port: 1111
+  secret_key: ""
+  session_max_age: 2592000
+  log_level: info
+  auto_import_categories: true
+  ssl_enabled: false
+schema:
+  port: port
+  secret_key: password
+  session_max_age: int(86400,7776000)
+  log_level: list(debug|info|warning|error)
+  auto_import_categories: bool
+  ssl_enabled: bool
+image: "ghcr.io/{arch}-money-fest"

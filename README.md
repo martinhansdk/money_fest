@@ -48,11 +48,22 @@ A self-hosted web application for collaborative bank transaction categorization 
 - ✅ Create rules from transactions
 - ✅ Multiple matching rules support
 
-**Phase 6-8 (Upcoming):**
-- Similar transaction matching
-- Mobile device testing
-- Performance optimization
-- Final deployment polish
+**Phase 6 (Complete):**
+- ✅ Similar transaction fuzzy matching with configurable tolerance
+- ✅ Reference transaction display in suggestions
+- ✅ Smart matching algorithm balancing precision and recall
+
+**Phase 7 (Complete):**
+- ✅ Web-based first-time setup (no CLI required)
+- ✅ Web-based user management
+- ✅ HTTPS support with automatic certificate generation
+- ✅ Mobile-optimized interface
+
+**Phase 8 (In Progress):**
+- ✅ Home Assistant add-on configuration
+- ✅ Automatic SSL certificate generation (10-year validity)
+- 🔄 Production deployment
+- 🔄 Final documentation
 
 ## Tech Stack
 
@@ -84,36 +95,52 @@ docker-compose up -d
 
 The application will be available at `http://localhost:1111`
 
-### 3. Initial Setup
+### 3. First-Time Setup
 
-#### Create Users
+**Option A: Web-Based Setup (Recommended)**
+
+1. Open your browser to `http://localhost:1111/setup`
+2. Fill out the setup form:
+   - **Username**: 3-50 characters
+   - **Password**: 8+ characters
+   - **Confirm Password**: Must match
+3. Click "Create User"
+4. You'll be redirected to the login page
+5. Log in with your new credentials
+
+**The `/setup` page becomes inaccessible after the first user is created (security feature).**
+
+To create additional users, log in and click the "Users" button in the header.
+
+**Option B: CLI Setup (Advanced)**
 
 ```bash
-# Option 1: Using --password flag (simple but less secure)
-docker exec categorizer python -m app.cli create-user martin --password yourpassword
-
-# Option 2: Using interactive mode (most secure, requires -it flag)
+# Create first user
 docker exec -it categorizer python -m app.cli create-user martin
-# Enter password when prompted
-
-# Option 3: Using environment variable
-docker exec -e USER_PASSWORD=yourpassword categorizer python -m app.cli create-user martin
 
 # Create second user
-docker exec categorizer python -m app.cli create-user wife --password yourpassword
-```
+docker exec -it categorizer python -m app.cli create-user wife
 
-#### Import Categories
-
-```bash
+# Import categories (optional - auto-imported on first run)
 docker exec categorizer python -m app.cli import-categories /app/categories.txt
 ```
 
-This imports 175 pre-defined expense categories.
+### 4. Optional: Enable HTTPS
 
-### 4. Access the Application
+For secure access over your local network:
 
-Open your browser to `http://localhost:1111` and login with one of the created users.
+```bash
+# Create .env file
+echo "SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(32))')" > .env
+echo "SSL_ENABLED=true" >> .env
+
+# Restart container
+docker-compose restart
+```
+
+Access via `https://localhost:1111` (certificates auto-generated with 10-year validity).
+
+See [HTTPS-SETUP.md](HTTPS-SETUP.md) for detailed instructions.
 
 ## CLI Commands
 
@@ -203,6 +230,40 @@ docker exec categorizer python -m app.cli backup /app/data/
 ```
 
 Backup files are named with timestamp: `categorizer_backup_YYYYMMDD_HHMMSS.db`
+
+## Home Assistant Add-on
+
+Money Fest can be installed as a Home Assistant add-on for seamless integration with your smart home.
+
+### Features
+
+- **Web-based setup** - Create users via browser (no CLI required)
+- **Auto-SSL** - Automatic certificate generation when enabled
+- **Persistent storage** - Database and certificates stored in `/data`
+- **Multi-architecture** - Supports amd64, aarch64, armv7
+- **Separate port access** - Not Ingress, accessible via IP:PORT
+
+### Installation
+
+1. Add the repository to Home Assistant:
+   - Settings → Add-ons → Repositories
+   - Add repository URL
+
+2. Install "Money Fest" from the add-on store
+
+3. Configure the add-on:
+   - Set a strong `secret_key`
+   - Optionally enable `ssl_enabled`
+   - Adjust port, log level, etc.
+
+4. Start the add-on
+
+5. First-time setup:
+   - Visit `http://[YOUR-HA-IP]:[PORT]/setup`
+   - Create your first user via web form
+   - Log in and start categorizing!
+
+See [hassio-addon/DOCS.md](hassio-addon/DOCS.md) for complete documentation.
 
 ## Configuration
 
@@ -352,6 +413,20 @@ cp data/categorizer.db data/categorizer_backup_$(date +%Y%m%d_%H%M%S).db
 - `POST /auth/logout` - Logout and clear session
 - `GET /auth/me` - Get current user (protected)
 
+### Setup (Phase 7)
+
+- `GET /setup` - First-time setup page (only accessible when no users exist)
+- `POST /setup` - Create first user account
+  - Body: `{"username": "admin", "password": "password123", "confirm_password": "password123"}`
+  - Redirects to login after success
+  - Returns 303 redirect to login if users already exist
+
+### User Management (Phase 7)
+
+- `GET /users/list` - List all users (protected)
+- `POST /users/create` - Create new user (protected)
+  - Body: `{"username": "newuser", "password": "password123", "confirm_password": "password123"}`
+
 ### Batches (Phase 2)
 
 - `POST /batches` - Upload CSV file and create batch
@@ -406,6 +481,13 @@ cp data/categorizer.db data/categorizer_backup_$(date +%Y%m%d_%H%M%S).db
     - `{"type": "transaction_updated", "batch_id": 123, "transaction": {...}}` - Transaction updated
     - `{"type": "batch_progress", "batch_id": 123, "categorized": 5, "total": 10}` - Progress update
     - `{"type": "batch_complete", "batch_id": 123}` - All transactions categorized
+
+### Similar Transactions (Phase 6)
+
+- `GET /similar/{transaction_id}` - Find similar categorized transactions
+  - Query params: `tolerance` (float, 0.0-1.0, default 0.05 = 5%)
+  - Returns: List of similar transactions with categories and reference info
+  - Uses fuzzy matching on payee text and amount tolerance
 
 ### Health Check
 
@@ -463,10 +545,14 @@ chmod 777 data/
 ## Security Notes
 
 - **Change the SECRET_KEY** in production (see Configuration)
-- Default setup uses HTTP (not HTTPS). For production, add a reverse proxy (nginx, Caddy) with SSL/TLS
-- Passwords are hashed with bcrypt
-- Sessions use secure random tokens
+- **HTTPS Support**: Enable with `SSL_ENABLED=true` for automatic self-signed certificate generation (10-year validity)
+- Passwords are hashed with bcrypt (industry standard)
+- Sessions use cryptographically signed tokens with SECRET_KEY
+- Session cookies are secure and HTTP-only
 - Minimum password length: 8 characters
+- For internet-facing deployments, use a reverse proxy (nginx, Caddy) with Let's Encrypt certificates
+
+See [HTTPS-SETUP.md](HTTPS-SETUP.md) for SSL/TLS configuration details.
 
 ## CSV Formats
 
@@ -524,9 +610,9 @@ Downloaded CSV files are always in **AceMoney format** for import to AceMoney so
 - [x] **Phase 3:** Categorization UI (transaction UI, category selector)
 - [x] **Phase 4:** Real-time sync (WebSocket, celebrations)
 - [x] **Phase 5:** Rules engine (suggestion-based categorization)
-- [ ] **Phase 6:** Similar transactions (fuzzy matching)
-- [~] **Phase 7:** Polish (UX improvements, mobile optimization) - Partially complete
-- [ ] **Phase 8:** Deployment (final testing, documentation)
+- [x] **Phase 6:** Similar transactions (fuzzy matching with configurable tolerance)
+- [x] **Phase 7:** Polish (web setup, user management, HTTPS, mobile optimization)
+- [~] **Phase 8:** Deployment (HA add-on, documentation) - In progress
 
 ## License
 
@@ -542,4 +628,4 @@ For issues or questions, check:
 
 ---
 
-**Version:** 0.5.0 (Phases 1-5 Complete - Rules Engine & Real-Time Sync)
+**Version:** 0.8.0 (Phases 1-7 Complete - Web Setup, User Management, HTTPS, HA Add-on Ready)
