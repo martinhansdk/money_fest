@@ -6,14 +6,16 @@ FROM ${BUILD_FROM}
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies needed for Python packages
+# Install system dependencies needed for Python packages and SSL
 # gcc: required for bcrypt compilation
 # musl-dev: required for Alpine compatibility
 # libffi-dev: required for cryptography packages
+# openssl: required for SSL certificate generation
 RUN apk add --no-cache \
     gcc \
     musl-dev \
-    libffi-dev
+    libffi-dev \
+    openssl
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .

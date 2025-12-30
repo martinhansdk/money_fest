@@ -2,7 +2,15 @@
 
 All notable changes to this add-on will be documented in this file.
 
-## [1.0.0] - 2025-01-XX
+## [1.0.1] - 2025-12-30
+
+### Fixed
+- Add-on crash during SSL certificate generation
+- Missing `openssl` package in Docker image
+- Error handling in run.sh script when SSL generation fails
+- Script now gracefully falls back to HTTP if SSL certificate generation fails
+
+## [1.0.0] - 2025-12-30
 
 ### Added
 - Initial Home Assistant add-on release

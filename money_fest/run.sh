@@ -82,6 +82,9 @@ if [ "$SSL_ENABLED" = "true" ]; then
         bashio::log.info "SSL certificates not found, generating self-signed certificate..."
         bashio::log.info "Certificate will be saved to /data/certs/ (persistent storage)"
 
+        # Temporarily disable exit-on-error for SSL certificate generation
+        set +e
+
         # Generate self-signed certificate (valid for 10 years)
         openssl req -x509 -newkey rsa:4096 -nodes \
             -keyout "$SSL_KEY" \
@@ -91,7 +94,12 @@ if [ "$SSL_ENABLED" = "true" ]; then
             -addext "subjectAltName=DNS:homeassistant.local,DNS:*.local,DNS:localhost,IP:127.0.0.1" \
             2>/dev/null
 
-        if [ $? -eq 0 ]; then
+        SSL_GEN_EXIT_CODE=$?
+
+        # Re-enable exit-on-error
+        set -e
+
+        if [ $SSL_GEN_EXIT_CODE -eq 0 ]; then
             bashio::log.info "✓ SSL certificate generated successfully!"
             bashio::log.info "  Certificate: $SSL_CERT"
             bashio::log.info "  Private key: $SSL_KEY"
