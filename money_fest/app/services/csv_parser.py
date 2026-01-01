@@ -51,10 +51,24 @@ class AceMoneyParser(CSVParser):
     - Headers: transaction,date,payee,category,status,withdrawal,deposit,total,comment
     - Date: DD.MM.YYYY or DD-MM-YYYY (both formats supported)
     - Amount: Separate withdrawal/deposit columns (only one populated)
+
+    Note: Also accepts common variants like "Num" for "transaction" and "S" for "status"
     """
 
     EXPECTED_HEADERS = ['transaction', 'date', 'payee', 'category', 'status',
                        'withdrawal', 'deposit', 'total', 'comment']
+
+    # Header aliases - maps variant names to canonical names
+    HEADER_ALIASES = {
+        'num': 'transaction',
+        's': 'status'
+    }
+
+    @classmethod
+    def normalize_header(cls, header: str) -> str:
+        """Normalize header name, applying aliases if needed"""
+        normalized = header.strip().lower()
+        return cls.HEADER_ALIASES.get(normalized, normalized)
 
     def parse(self, file_content: bytes) -> List[ParsedTransaction]:
         """Parse AceMoney CSV file"""
@@ -69,8 +83,20 @@ class AceMoneyParser(CSVParser):
         except UnicodeDecodeError as e:
             raise ValueError(f"Failed to decode file with latin-1 encoding: {e}")
 
-        # Parse CSV
-        reader = csv.DictReader(io.StringIO(text))
+        # Parse CSV with normalized headers
+        lines = text.split('\n')
+        if not lines:
+            raise ValueError("File is empty")
+
+        # Get and normalize headers
+        header_reader = csv.reader(io.StringIO(lines[0]))
+        original_headers = next(header_reader)
+        normalized_headers = [self.normalize_header(h) for h in original_headers]
+
+        # Create DictReader with normalized headers
+        # Re-read from start but use normalized fieldnames
+        reader = csv.DictReader(io.StringIO(text), fieldnames=normalized_headers)
+        next(reader)  # Skip the original header row
         transactions = []
 
         for row_num, row in enumerate(reader, start=2):  # Start at 2 (after header)
@@ -155,8 +181,8 @@ class AceMoneyParser(CSVParser):
             reader = csv.reader(io.StringIO(text))
             headers = next(reader)
 
-            # Normalize headers (strip whitespace, lowercase)
-            headers = [h.strip().lower() for h in headers]
+            # Normalize headers (strip whitespace, lowercase, apply aliases)
+            headers = [self.normalize_header(h) for h in headers]
             expected = [h.lower() for h in self.EXPECTED_HEADERS]
 
             if headers != expected:
@@ -164,7 +190,7 @@ class AceMoneyParser(CSVParser):
                     f"Invalid headers.\n"
                     f"Expected: {', '.join(self.EXPECTED_HEADERS)}\n"
                     f"Found: {', '.join(headers)}\n"
-                    f"Note: Headers must match exactly (case-insensitive)"
+                    f"Note: Headers must match exactly (case-insensitive, 'Num' and 'S' are accepted as aliases)"
                 )
         except StopIteration:
             errors.append("File contains no data (not even headers)")
@@ -358,10 +384,10 @@ def detect_csv_format(file_content: bytes) -> str:
         text = file_content.decode('latin-1')
         # Check if it uses comma delimiter
         if ',' in text.split('\n')[0]:
-            # Check if headers match AceMoney format
+            # Check if headers match AceMoney format (with aliases)
             reader = csv.reader(io.StringIO(text))
             headers = next(reader)
-            headers = [h.strip().lower() for h in headers]
+            headers = [AceMoneyParser.normalize_header(h) for h in headers]
             expected = [h.lower() for h in AceMoneyParser.EXPECTED_HEADERS]
             if headers == expected:
                 return "acemoney"

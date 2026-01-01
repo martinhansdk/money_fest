@@ -8,6 +8,10 @@ The CSV parser expects **exact headers** in this order:
 transaction,date,payee,category,status,withdrawal,deposit,total,comment
 ```
 
+**Note**: The parser also accepts common variations:
+- `"Num"` as an alias for `transaction`
+- `"S"` as an alias for `status`
+
 ### Common Issues
 
 1. **Wrong encoding**: File must be **latin-1** (ISO-8859-1) encoded
