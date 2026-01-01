@@ -377,7 +377,10 @@
                 <div class="form-group">
                     <label for="csvFile">CSV File</label>
                     <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
-                    <div class="upload-info">Supports AceMoney (latin-1) and Danske Bank (UTF-8) formats</div>
+                    <div class="upload-info">
+                        Supports AceMoney (latin-1) and Danske Bank (UTF-8) formats<br>
+                        <small style="color: #999;">Use the file picker to browse for files. Files with spaces in names are supported.</small>
+                    </div>
                 </div>
                 <div id="uploadError" class="error-text" style="display: none;"></div>
                 <div class="modal-actions">
@@ -474,6 +477,13 @@
                                 Archive
                             </button>
                         ` : ''}
+                        ${batch.status === 'complete' || batch.status === 'archived' ? `
+                            <button onclick="downloadBatch(event, ${batch.id}, '${escapeHtml(batch.name)}')"
+                                    class="btn btn-primary btn-sm"
+                                    title="Download as CSV (AceMoney format)">
+                                Download
+                            </button>
+                        ` : ''}
                         <button onclick="deleteBatch(event, ${batch.id}, '${escapeHtml(batch.name)}', ${batch.total_count})"
                                 class="btn btn-danger btn-sm"
                                 title="Delete batch">
@@ -553,6 +563,50 @@
             } catch (error) {
                 console.error('Archive error:', error);
                 toast.error(error.message || 'Failed to archive batch');
+            }
+        }
+
+        async function downloadBatch(event, batchId, batchName) {
+            // Prevent the batch card click event from firing
+            event.stopPropagation();
+
+            try {
+                const response = await fetch(`/batches/${batchId}/download`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/static/index.html';
+                        return;
+                    }
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to download batch');
+                }
+
+                // Get the blob from response
+                const blob = await response.blob();
+
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${batchName.replace(/[^a-zA-Z0-9-_]/g, '_')}.csv`;
+                document.body.appendChild(a);
+                a.click();
+
+                // Cleanup
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                toast.success('Batch downloaded successfully');
+
+                // Reload batches (download auto-archives the batch)
+                loadBatches();
+            } catch (error) {
+                console.error('Download error:', error);
+                toast.error(error.message || 'Failed to download batch');
             }
         }
 

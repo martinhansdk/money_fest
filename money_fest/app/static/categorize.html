@@ -1214,6 +1214,19 @@
             initializeWebSocket();
         });
 
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            // CTRL+F (or CMD+F on Mac) - Focus payee filter
+            if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+                event.preventDefault(); // Prevent browser's find dialog
+                const payeeFilter = document.getElementById('filterPayee');
+                if (payeeFilter) {
+                    payeeFilter.focus();
+                    payeeFilter.select();
+                }
+            }
+        });
+
         // Initialize WebSocket connection and event handlers
         function initializeWebSocket() {
             // Connect to WebSocket server
