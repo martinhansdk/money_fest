@@ -9,10 +9,10 @@ RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY app/ ./app/
-COPY tests/ ./tests/
-COPY categories.txt .
+# Copy application code from add-on directory (for production builds)
+# In development, these are overridden by volume mounts in docker-compose.yml
+COPY money_fest/app/ ./app/
+COPY money_fest/categories.txt .
 COPY start.sh .
 
 # Make start script executable

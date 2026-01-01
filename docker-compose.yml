@@ -6,6 +6,8 @@ services:
       - "1111:8080"
     volumes:
       - ./data:/app/data  # Database and SSL certificates (auto-generated in data/certs/)
+      - ./money_fest/app:/app/app  # Mount add-on app directory for development (no rebuild needed)
+      - ./money_fest/categories.txt:/app/categories.txt  # Mount categories file
     environment:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DATABASE_PATH=/app/data/categorizer.db
