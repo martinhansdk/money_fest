@@ -1,5 +1,5 @@
 name: Money Fest
-version: "1.0.2"
+version: "1.0.6"
 slug: money_fest
 description: "Collaborative bank transaction categorizer for couples"
 url: "https://github.com/martinhansdk/money_fest"

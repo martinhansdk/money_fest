@@ -2,6 +2,54 @@
 
 All notable changes to this add-on will be documented in this file.
 
+## [1.0.6] - 2025-12-31
+
+### Fixed
+- Transaction display in categorization modal now shows properly styled amount (removed unrendered HTML)
+- Amount text now displays in white for better readability on purple gradient background
+- Filter input boxes now have consistent vertical alignment with proper heights
+- Similar transactions dialog now uses searchable category input instead of dropdown
+- Added inline category creation to similar transactions dialog (type "Parent:Child" format)
+
+### Added
+- Archive batch button for in-progress batches
+- Archive batch confirmation dialog
+- Batch archival functionality connected to existing backend endpoint
+
+## [1.0.5] - 2025-12-31
+
+### Added
+- Category CRUD operations: create, update, and delete categories via API
+- POST /categories endpoint to create new categories with auto-parent detection
+- PUT /categories/{id} endpoint to update category name or hierarchy
+- DELETE /categories/{id} endpoint to delete categories with required replacement
+- Automatic cascade updates to child categories and transactions when renaming
+- CategoryUpdate and CategoryDelete request models
+
+### Changed
+- Category updates now automatically update all child categories and related transactions
+- Category deletion requires specifying a replacement category to maintain data integrity
+
+## [1.0.4] - 2025-12-31
+
+### Added
+- Sortable transaction table columns (date, payee, amount, category)
+- Transaction filters: payee (text search), amount (exact or range), category (text search)
+- Click-to-copy amount functionality to quickly filter by exact amount
+- Selected transaction display at top of categorization modal
+- Clear filters button
+- Visual sort indicators (▲ ▼) on table headers
+
+### Changed
+- Transaction table now supports multi-level filtering and sorting
+- Amount cells are clickable for quick filtering
+
+## [1.0.3] - 2025-12-31
+
+### Added
+- Batch deletion UI with confirmation dialog showing transaction count
+- Delete button on each batch card in the batches list
+
 ## [1.0.2] - 2025-12-30
 
 ### Fixed

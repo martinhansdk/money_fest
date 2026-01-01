@@ -177,3 +177,221 @@ def get_frequent_categories(db: sqlite3.Connection, limit: int = 15) -> list[dic
     )
     rows = cursor.fetchall()
     return [dict_from_row(row) for row in rows]
+
+
+def create_category(db: sqlite3.Connection, full_path: str) -> dict:
+    """
+    Create a new category with automatic parent detection from full_path
+
+    Args:
+        db: Database connection
+        full_path: Full path of the category (e.g., "Food:Groceries")
+
+    Returns:
+        Created category dict
+
+    Raises:
+        ValueError: If full_path format is invalid, parent doesn't exist, or category already exists
+    """
+    # Validate full_path format
+    if ':' not in full_path:
+        raise ValueError("Category must include parent (e.g., 'Food:Groceries')")
+
+    parts = full_path.split(':')
+    parent = ':'.join(parts[:-1]) if len(parts) > 1 else None
+    name = parts[-1]
+
+    # Validate parent exists if specified
+    if parent:
+        parent_category = get_category_by_full_path(db, parent)
+        if not parent_category:
+            raise ValueError(f"Parent category '{parent}' does not exist")
+
+    # Check for duplicate full_path
+    existing = get_category_by_full_path(db, full_path)
+    if existing:
+        raise ValueError(f"Category '{full_path}' already exists")
+
+    # Insert category
+    cursor = db.execute(
+        """INSERT INTO categories (name, parent, full_path, usage_count)
+           VALUES (?, ?, ?, 0)""",
+        (name, parent, full_path)
+    )
+    db.commit()
+
+    return get_category_by_full_path(db, full_path)
+
+
+def update_category(db: sqlite3.Connection, category_id: int, updates: dict) -> dict:
+    """
+    Update category name or parent. Cascades to children and transactions.
+
+    Args:
+        db: Database connection
+        category_id: ID of the category to update
+        updates: Dictionary with 'new_name' and/or 'new_parent' keys
+
+    Returns:
+        Updated category dict
+
+    Raises:
+        ValueError: If category not found, parent doesn't exist, or would create duplicate
+    """
+    cursor = db.execute(
+        "SELECT * FROM categories WHERE id = ?", (category_id,)
+    )
+    category = cursor.fetchone()
+
+    if not category:
+        raise ValueError("Category not found")
+
+    category = dict_from_row(category)
+    old_full_path = category['full_path']
+
+    # Build new full_path
+    name = updates.get('new_name', category['name'])
+    new_parent = updates.get('new_parent')
+
+    if new_parent is not None:
+        # Validate new parent exists if specified
+        if new_parent:
+            parent_cat = get_category_by_full_path(db, new_parent)
+            if not parent_cat:
+                raise ValueError(f"Parent '{new_parent}' does not exist")
+        new_full_path = f"{new_parent}:{name}" if new_parent else name
+    else:
+        # Keep existing parent
+        parent = category['parent']
+        new_full_path = f"{parent}:{name}" if parent else name
+
+    # Check for duplicate
+    if new_full_path != old_full_path:
+        existing = get_category_by_full_path(db, new_full_path)
+        if existing:
+            raise ValueError(f"Category '{new_full_path}' already exists")
+
+    # Determine final parent value
+    if new_parent is not None:
+        final_parent = new_parent if new_parent else None
+    else:
+        final_parent = category['parent']
+
+    # Update category
+    db.execute(
+        """UPDATE categories
+           SET name = ?, parent = ?, full_path = ?
+           WHERE id = ?""",
+        (name, final_parent, new_full_path, category_id)
+    )
+
+    # Update all child categories (full_path starts with old_full_path)
+    db.execute(
+        """UPDATE categories
+           SET full_path = REPLACE(full_path, ?, ?),
+               parent = REPLACE(parent, ?, ?)
+           WHERE full_path LIKE ?""",
+        (old_full_path, new_full_path, old_full_path, new_full_path, f"{old_full_path}:%")
+    )
+
+    # Update all transactions using this category
+    db.execute(
+        """UPDATE transactions
+           SET category = ?
+           WHERE category = ?""",
+        (new_full_path, old_full_path)
+    )
+
+    # Update transactions using child categories
+    db.execute(
+        """UPDATE transactions
+           SET category = REPLACE(category, ?, ?)
+           WHERE category LIKE ?""",
+        (old_full_path, new_full_path, f"{old_full_path}:%")
+    )
+
+    db.commit()
+
+    return get_category_by_full_path(db, new_full_path)
+
+
+def delete_category_with_replacement(
+    db: sqlite3.Connection,
+    category_id: int,
+    replacement_id: int
+) -> None:
+    """
+    Delete category and replace in all transactions
+
+    Args:
+        db: Database connection
+        category_id: ID of the category to delete
+        replacement_id: ID of the category to use as replacement
+
+    Raises:
+        ValueError: If categories not found or invalid replacement
+    """
+    # Get categories
+    cursor = db.execute(
+        "SELECT * FROM categories WHERE id = ?", (category_id,)
+    )
+    category = cursor.fetchone()
+
+    if not category:
+        raise ValueError("Category not found")
+
+    category = dict_from_row(category)
+
+    cursor = db.execute(
+        "SELECT * FROM categories WHERE id = ?", (replacement_id,)
+    )
+    replacement = cursor.fetchone()
+
+    if not replacement:
+        raise ValueError("Replacement category not found")
+
+    replacement = dict_from_row(replacement)
+
+    if category_id == replacement_id:
+        raise ValueError("Cannot replace category with itself")
+
+    old_full_path = category['full_path']
+    new_full_path = replacement['full_path']
+
+    # Update all transactions using this category
+    db.execute(
+        """UPDATE transactions
+           SET category = ?
+           WHERE category = ?""",
+        (new_full_path, old_full_path)
+    )
+
+    # Update transactions using child categories
+    db.execute(
+        """UPDATE transactions
+           SET category = ?
+           WHERE category LIKE ?""",
+        (new_full_path, f"{old_full_path}:%")
+    )
+
+    # Update replacement category usage_count
+    cursor = db.execute(
+        """SELECT COUNT(*) as count FROM transactions
+           WHERE category = ?""",
+        (new_full_path,)
+    )
+    affected_count = cursor.fetchone()[0]
+
+    db.execute(
+        "UPDATE categories SET usage_count = ? WHERE id = ?",
+        (affected_count, replacement_id)
+    )
+
+    # Delete category and all children
+    db.execute("DELETE FROM categories WHERE id = ?", (category_id,))
+    db.execute(
+        "DELETE FROM categories WHERE full_path LIKE ?",
+        (f"{old_full_path}:%",)
+    )
+
+    db.commit()

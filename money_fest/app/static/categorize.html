@@ -129,6 +129,69 @@
             color: white;
         }
 
+        .filter-inputs {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            height: 18px;
+        }
+
+        .filter-group input {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            transition: border-color 0.2s;
+            height: 38px;
+            box-sizing: border-box;
+        }
+
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-group small {
+            font-size: 11px;
+            color: #999;
+            height: 14px;
+            line-height: 14px;
+        }
+
+        .clear-filters-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #f5f5f5;
+            color: #666;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            height: 38px;
+            align-self: flex-end;
+        }
+
+        .clear-filters-btn:hover {
+            background: #e0e0e0;
+        }
+
         .bulk-actions {
             margin-left: auto;
             display: none;
@@ -163,6 +226,31 @@
             color: #666;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .transaction-table th[data-sortable] {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 24px;
+        }
+
+        .transaction-table th[data-sortable]:hover {
+            background: #f0f0f0;
+        }
+
+        .transaction-table th.sorted-asc::after {
+            content: ' ▲';
+            font-size: 0.8em;
+            position: absolute;
+            right: 8px;
+        }
+
+        .transaction-table th.sorted-desc::after {
+            content: ' ▼';
+            font-size: 0.8em;
+            position: absolute;
+            right: 8px;
         }
 
         .transaction-table tbody tr {
@@ -343,6 +431,53 @@
             padding: 0;
             width: 32px;
             height: 32px;
+        }
+
+        .selected-transaction-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .selected-transaction-info.visible {
+            display: block;
+        }
+
+        .transaction-label {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .transaction-details {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .transaction-details .payee {
+            font-weight: 600;
+            font-size: 15px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .transaction-details .date {
+            font-size: 13px;
+            opacity: 0.95;
+        }
+
+        .transaction-details .amount {
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            opacity: 1;
         }
 
         .frequent-categories {
@@ -841,6 +976,22 @@
                 <button class="btn btn-secondary" onclick="selectCategory(true)">Categorize Selected</button>
                 <button class="btn btn-secondary" onclick="clearSelection()">Clear</button>
             </div>
+            <div class="filter-inputs">
+                <div class="filter-group">
+                    <label>Payee</label>
+                    <input type="text" id="filterPayee" placeholder="Search payee..." oninput="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Amount</label>
+                    <input type="text" id="filterAmount" placeholder="Exact or range (40-50)" oninput="applyFilters()">
+                    <small>Click amounts in table to copy</small>
+                </div>
+                <div class="filter-group">
+                    <label>Category</label>
+                    <input type="text" id="filterCategory" placeholder="Search category..." oninput="applyFilters()">
+                </div>
+                <button onclick="clearFilters()" class="clear-filters-btn">Clear Filters</button>
+            </div>
         </div>
 
         <div class="transaction-list">
@@ -850,10 +1001,10 @@
                         <th class="checkbox-cell">
                             <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
                         </th>
-                        <th>Date</th>
-                        <th>Payee</th>
-                        <th>Amount</th>
-                        <th>Category</th>
+                        <th data-sortable data-column="date" onclick="sortTransactions('date')">Date</th>
+                        <th data-sortable data-column="payee" onclick="sortTransactions('payee')">Payee</th>
+                        <th data-sortable data-column="amount" onclick="sortTransactions('amount')">Amount</th>
+                        <th data-sortable data-column="category" onclick="sortTransactions('category')">Category</th>
                         <th class="status-cell"></th>
                     </tr>
                 </thead>
@@ -871,6 +1022,16 @@
         <div class="category-selector-header">
             <div class="category-selector-title">Select Category</div>
             <button class="close-selector" onclick="closeSelector()">×</button>
+        </div>
+
+        <!-- Selected Transaction Info -->
+        <div id="selectedTransactionInfo" class="selected-transaction-info">
+            <div class="transaction-label">Categorizing:</div>
+            <div class="transaction-details">
+                <span class="payee" id="modalPayee"></span>
+                <span class="date" id="modalDate"></span>
+                <span class="amount" id="modalAmount"></span>
+            </div>
         </div>
 
         <!-- Rule Suggestions -->
@@ -985,10 +1146,11 @@
             <div id="similarContent" class="similar-list"></div>
 
             <div id="similarCategorySection" style="margin-top: 20px; display: none;">
-                <label for="similarCategory" style="display: block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px;">Category for Selected Transactions</label>
-                <select id="similarCategory" style="width: 100%; padding: 12px 16px; font-size: 14px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box;">
-                    <option value="">Select a category...</option>
-                </select>
+                <label for="similarCategorySearch" style="display: block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px;">Category for Selected Transactions</label>
+                <input type="text" id="similarCategorySearch" placeholder="Search categories..."
+                       oninput="searchSimilarCategories()"
+                       style="width: 100%; padding: 12px 16px; font-size: 14px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; margin-bottom: 8px;">
+                <div id="similarCategoryResults" style="max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; display: none;"></div>
             </div>
 
             <div class="modal-actions">
@@ -1011,6 +1173,14 @@
         let selectedTransaction = null;
         let isBulkMode = false;
         let currentUser = null;
+
+        // Sorting and filtering state
+        let currentSort = { column: 'date', direction: 'asc' };
+        let filters = {
+            payee: '',
+            amount: '',
+            category: ''
+        };
 
         // Parse batch ID from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -1209,10 +1379,39 @@
 
         function renderTransactions() {
             const tbody = document.getElementById('transactionList');
+
+            // Apply status filter
             let filtered = transactions.filter(t => {
                 if (currentFilter === 'uncategorized') return t.status === 'uncategorized';
                 if (currentFilter === 'categorized') return t.status === 'categorized';
                 return true;
+            });
+
+            // Apply custom filters
+            filtered = filtered.filter(matchesFilters);
+
+            // Apply sorting
+            filtered.sort((a, b) => {
+                let valA = a[currentSort.column];
+                let valB = b[currentSort.column];
+
+                // Handle different data types
+                if (currentSort.column === 'date') {
+                    valA = new Date(valA);
+                    valB = new Date(valB);
+                } else if (currentSort.column === 'amount') {
+                    valA = parseFloat(valA);
+                    valB = parseFloat(valB);
+                } else {
+                    valA = (valA || '').toLowerCase();
+                    valB = (valB || '').toLowerCase();
+                }
+
+                if (currentSort.direction === 'asc') {
+                    return valA > valB ? 1 : -1;
+                } else {
+                    return valA < valB ? 1 : -1;
+                }
             });
 
             if (filtered.length === 0) {
@@ -1233,7 +1432,10 @@
                         ${escapeHtml(t.payee)}
                         <button class="show-similar-btn" onclick="event.stopPropagation(); showSimilar(${t.id})" title="Find similar transactions">⚡ Similar</button>
                     </td>
-                    <td class="amount-cell ${t.amount < 0 ? 'amount-expense' : 'amount-income'}">
+                    <td class="amount-cell ${t.amount < 0 ? 'amount-expense' : 'amount-income'}"
+                        onclick="event.stopPropagation(); copyAmountToFilter(${t.amount})"
+                        title="Click to filter by this amount"
+                        style="cursor: pointer;">
                         ${formatAmount(t.amount)}
                     </td>
                     <td class="category-cell ${t.category ? '' : 'category-empty'}">
@@ -1247,6 +1449,90 @@
             `).join('');
 
             updateProgress();
+            updateSortIndicators();
+        }
+
+        function sortTransactions(column) {
+            if (currentSort.column === column) {
+                // Toggle direction if same column
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                // New column, default to ascending
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+            renderTransactions();
+        }
+
+        function updateSortIndicators() {
+            // Remove all sort indicators
+            document.querySelectorAll('th[data-sortable]').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+
+            // Add indicator to active column
+            const activeHeader = document.querySelector(`th[data-column="${currentSort.column}"]`);
+            if (activeHeader) {
+                activeHeader.classList.add(`sorted-${currentSort.direction}`);
+            }
+        }
+
+        function matchesFilters(transaction) {
+            // Payee filter
+            if (filters.payee && !transaction.payee.toLowerCase().includes(filters.payee)) {
+                return false;
+            }
+
+            // Amount filter (exact or range)
+            if (filters.amount) {
+                const amount = Math.abs(transaction.amount);
+                if (filters.amount.includes('-')) {
+                    // Range filter: "40-50"
+                    const [min, max] = filters.amount.split('-').map(s => parseFloat(s.trim()));
+                    if (isNaN(min) || isNaN(max) || amount < min || amount > max) {
+                        return false;
+                    }
+                } else {
+                    // Exact filter: "42.50"
+                    const filterAmount = parseFloat(filters.amount);
+                    if (isNaN(filterAmount) || Math.abs(amount - filterAmount) > 0.01) {
+                        return false;
+                    }
+                }
+            }
+
+            // Category filter
+            if (filters.category) {
+                const category = transaction.category || '';
+                if (!category.toLowerCase().includes(filters.category)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function applyFilters() {
+            filters.payee = document.getElementById('filterPayee').value.toLowerCase();
+            filters.amount = document.getElementById('filterAmount').value.trim();
+            filters.category = document.getElementById('filterCategory').value.toLowerCase();
+            renderTransactions();
+        }
+
+        function clearFilters() {
+            document.getElementById('filterPayee').value = '';
+            document.getElementById('filterAmount').value = '';
+            document.getElementById('filterCategory').value = '';
+            filters.payee = '';
+            filters.amount = '';
+            filters.category = '';
+            renderTransactions();
+        }
+
+        function copyAmountToFilter(amount) {
+            document.getElementById('filterAmount').value = Math.abs(amount).toFixed(2);
+            applyFilters();
+            toast.success('Amount copied to filter');
         }
 
         function renderFrequentCategories() {
@@ -1300,6 +1586,17 @@
             const noteInput = document.getElementById('noteInput');
             noteInput.value = selectedTransaction.note || '';
 
+            // Populate transaction info in modal
+            document.getElementById('modalPayee').textContent = selectedTransaction.payee;
+            document.getElementById('modalDate').textContent = formatDate(selectedTransaction.date);
+            const amountElem = document.getElementById('modalAmount');
+            const amount = parseFloat(selectedTransaction.amount);
+            amountElem.textContent = (amount >= 0 ? '+' : '-') + Math.abs(amount).toFixed(2);
+            amountElem.className = 'amount'; // White on gradient background
+
+            // Show transaction info section
+            document.getElementById('selectedTransactionInfo').classList.add('visible');
+
             // Load rule suggestions
             await loadRuleSuggestions(id);
 
@@ -1318,6 +1615,9 @@
             if (bulk) {
                 document.getElementById('noteInput').value = '';
             }
+
+            // Hide transaction info in bulk mode
+            document.getElementById('selectedTransactionInfo').classList.remove('visible');
 
             openSelector();
         }
@@ -1615,19 +1915,16 @@
                     document.getElementById('toleranceValue').textContent = '10';
                 }
 
-                // Populate category dropdown
-                const categorySelect = document.getElementById('similarCategory');
-                categorySelect.innerHTML = '<option value="">Select a category...</option>';
-                allCategories.forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.full_path;
-                    option.textContent = cat.full_path;
-                    // Pre-select the reference transaction's category if it has one
-                    if (similarData.transaction.category && cat.full_path === similarData.transaction.category) {
-                        option.selected = true;
-                    }
-                    categorySelect.appendChild(option);
-                });
+                // Pre-fill category search if reference transaction has a category
+                const categorySearch = document.getElementById('similarCategorySearch');
+                if (similarData.transaction.category) {
+                    categorySearch.value = similarData.transaction.category;
+                    selectedSimilarCategory = similarData.transaction.category;
+                } else {
+                    categorySearch.value = '';
+                    selectedSimilarCategory = null;
+                }
+                document.getElementById('similarCategoryResults').style.display = 'none';
 
                 // Populate reference transaction display
                 document.getElementById('refPayee').textContent = similarData.transaction.payee;
@@ -1844,15 +2141,87 @@
             renderSimilarTransactions();
         }
 
+        let selectedSimilarCategory = null;
+
+        function searchSimilarCategories() {
+            const query = document.getElementById('similarCategorySearch').value.toLowerCase();
+            const results = document.getElementById('similarCategoryResults');
+
+            if (query.length < 2) {
+                results.style.display = 'none';
+                return;
+            }
+
+            const filtered = allCategories.filter(cat =>
+                cat.full_path.toLowerCase().includes(query)
+            ).slice(0, 20);
+
+            if (filtered.length === 0 && query.includes(':')) {
+                // Offer to create new category
+                results.innerHTML = `
+                    <div onclick="createAndAssignSimilarCategory('${query}')"
+                         style="padding: 12px; cursor: pointer; background: #e3f2fd; border-bottom: 1px solid #e0e0e0; font-weight: 500;">
+                        <span style="font-size: 16px; margin-right: 8px;">+</span>
+                        Create "${query}"
+                    </div>
+                `;
+                results.style.display = 'block';
+            } else {
+                results.innerHTML = filtered.map(cat => `
+                    <div onclick="selectSimilarCategory('${cat.full_path}')"
+                         style="padding: 12px; cursor: pointer; border-bottom: 1px solid #e0e0e0;">
+                        ${cat.full_path}
+                    </div>
+                `).join('');
+                results.style.display = filtered.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        function selectSimilarCategory(categoryPath) {
+            selectedSimilarCategory = categoryPath;
+            document.getElementById('similarCategorySearch').value = categoryPath;
+            document.getElementById('similarCategoryResults').style.display = 'none';
+        }
+
+        async function createAndAssignSimilarCategory(full_path) {
+            try {
+                const response = await fetch('/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        name: full_path.split(':').pop(),
+                        parent: full_path.split(':').slice(0, -1).join(':') || null,
+                        full_path
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+
+                // Reload categories
+                await loadCategories();
+
+                // Select the new category
+                selectSimilarCategory(full_path);
+
+                toast.success(`Category "${full_path}" created`);
+            } catch (error) {
+                console.error('Error creating category:', error);
+                toast.error(error.message || 'Failed to create category');
+            }
+        }
+
         async function categorizeSimilar() {
             if (selectedSimilar.size === 0) {
                 toast.error('No transactions selected');
                 return;
             }
 
-            // Get the selected category from dropdown
-            const categorySelect = document.getElementById('similarCategory');
-            const category = categorySelect.value;
+            // Get the selected category from search
+            const category = selectedSimilarCategory || document.getElementById('similarCategorySearch').value.trim();
             if (!category) {
                 toast.error('Please select a category');
                 return;

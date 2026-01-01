@@ -51,6 +51,17 @@ class CategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CategoryUpdate(BaseModel):
+    """Request model for updating a category"""
+    new_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    new_parent: Optional[str] = Field(None, max_length=200)
+
+
+class CategoryDelete(BaseModel):
+    """Request model for deleting a category with replacement"""
+    replacement_category_id: int = Field(..., gt=0)
+
+
 # ==================== Batch Models (Phase 2 stubs) ====================
 
 class BatchCreate(BaseModel):

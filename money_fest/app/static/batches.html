@@ -296,6 +296,27 @@
             font-weight: 500;
         }
 
+        .btn-danger {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            min-height: auto;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
         @media (max-width: 600px) {
             .header {
                 padding: 20px;
@@ -445,12 +466,94 @@
                             <div class="progress-fill" style="width: ${batch.progress_percent}%"></div>
                         </div>
                     </div>
+                    <div class="batch-actions">
+                        ${batch.status === 'in_progress' ? `
+                            <button onclick="archiveBatch(event, ${batch.id}, '${escapeHtml(batch.name)}')"
+                                    class="btn btn-secondary btn-sm"
+                                    title="Archive batch">
+                                Archive
+                            </button>
+                        ` : ''}
+                        <button onclick="deleteBatch(event, ${batch.id}, '${escapeHtml(batch.name)}', ${batch.total_count})"
+                                class="btn btn-danger btn-sm"
+                                title="Delete batch">
+                            Delete
+                        </button>
+                    </div>
                 </div>
             `).join('');
         }
 
         function openBatch(batchId) {
             window.location.href = `/static/categorize.html?batch=${batchId}`;
+        }
+
+        async function deleteBatch(event, batchId, batchName, totalCount) {
+            // Prevent the batch card click event from firing
+            event.stopPropagation();
+
+            // Confirm deletion with transaction count
+            const message = `Delete batch "${batchName}"?\n\nThis will permanently delete all ${totalCount} transaction${totalCount !== 1 ? 's' : ''}.`;
+            if (!confirm(message)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/batches/${batchId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/static/index.html';
+                        return;
+                    }
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to delete batch');
+                }
+
+                toast.success('Batch deleted successfully');
+                // Reload batches to reflect the deletion
+                loadBatches();
+            } catch (error) {
+                console.error('Delete error:', error);
+                toast.error(error.message || 'Failed to delete batch');
+            }
+        }
+
+        async function archiveBatch(event, batchId, batchName) {
+            // Prevent the batch card click event from firing
+            event.stopPropagation();
+
+            // Confirm archive
+            const message = `Archive batch "${batchName}"?\n\nThis will mark the batch as complete and move it to archived batches.`;
+            if (!confirm(message)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/batches/${batchId}/archive`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/static/index.html';
+                        return;
+                    }
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to archive batch');
+                }
+
+                toast.success('Batch archived successfully');
+                // Reload batches to reflect the change
+                loadBatches();
+            } catch (error) {
+                console.error('Archive error:', error);
+                toast.error(error.message || 'Failed to archive batch');
+            }
         }
 
         function showUploadModal() {
