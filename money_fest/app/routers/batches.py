@@ -222,7 +222,8 @@ def download_batch(
     """
     Download batch transactions as CSV (AceMoney format)
 
-    Automatically archives the batch after download
+    Automatically archives complete batches after download.
+    In-progress batches are downloaded without archiving.
 
     Args:
         batch_id: Batch ID to download
@@ -248,8 +249,10 @@ def download_batch(
     generator = CSVGenerator()
     csv_bytes = generator.generate(transactions)
 
-    # Archive batch after download
-    archive_batch(db, batch_id)
+    # Archive batch after download only if it's complete
+    # (in-progress batches remain in-progress so user can continue categorizing)
+    if batch['status'] == 'complete':
+        archive_batch(db, batch_id)
 
     # Return CSV as downloadable file
     filename = f"{batch['name'].replace(' ', '_')}.csv"

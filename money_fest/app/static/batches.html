@@ -477,13 +477,11 @@
                                 Archive
                             </button>
                         ` : ''}
-                        ${batch.status === 'complete' || batch.status === 'archived' ? `
-                            <button onclick="downloadBatch(event, ${batch.id}, '${escapeHtml(batch.name)}')"
-                                    class="btn btn-primary btn-sm"
-                                    title="Download as CSV (AceMoney format)">
-                                Download
-                            </button>
-                        ` : ''}
+                        <button onclick="downloadBatch(event, ${batch.id}, '${escapeHtml(batch.name)}', '${batch.status}')"
+                                class="btn btn-primary btn-sm"
+                                title="Download as CSV (AceMoney format)">
+                            Download
+                        </button>
                         <button onclick="deleteBatch(event, ${batch.id}, '${escapeHtml(batch.name)}', ${batch.total_count})"
                                 class="btn btn-danger btn-sm"
                                 title="Delete batch">
@@ -566,9 +564,19 @@
             }
         }
 
-        async function downloadBatch(event, batchId, batchName) {
+        async function downloadBatch(event, batchId, batchName, batchStatus) {
             // Prevent the batch card click event from firing
             event.stopPropagation();
+
+            // Warn if downloading in-progress batch
+            if (batchStatus === 'in_progress') {
+                const confirmed = confirm(
+                    `Download "${batchName}" while still in progress?\n\n` +
+                    `This batch is not complete. You can download it now but it will NOT be archived.\n` +
+                    `You can continue categorizing and download again later.`
+                );
+                if (!confirmed) return;
+            }
 
             try {
                 const response = await fetch(`/batches/${batchId}/download`, {
@@ -602,7 +610,7 @@
 
                 toast.success('Batch downloaded successfully');
 
-                // Reload batches (download auto-archives the batch)
+                // Reload batches (completed batches are auto-archived after download)
                 loadBatches();
             } catch (error) {
                 console.error('Download error:', error);

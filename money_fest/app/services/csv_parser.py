@@ -160,7 +160,12 @@ class AceMoneyParser(CSVParser):
             expected = [h.lower() for h in self.EXPECTED_HEADERS]
 
             if headers != expected:
-                errors.append(f"Invalid headers. Expected: {', '.join(self.EXPECTED_HEADERS)}")
+                errors.append(
+                    f"Invalid headers.\n"
+                    f"Expected: {', '.join(self.EXPECTED_HEADERS)}\n"
+                    f"Found: {', '.join(headers)}\n"
+                    f"Note: Headers must match exactly (case-insensitive)"
+                )
         except StopIteration:
             errors.append("File contains no data (not even headers)")
         except Exception as e:
