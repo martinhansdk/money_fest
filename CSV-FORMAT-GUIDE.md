@@ -76,6 +76,8 @@ If your file is in a different format:
 
 - `DD.MM.YYYY` (e.g., 25.11.2024)
 - `DD-MM-YYYY` (e.g., 25-11-2024)
+- `YYYY/MM/DD` (e.g., 2024/11/25)
+- `YYYY-MM-DD` (e.g., 2024-11-25)
 
 ### Amount Columns
 

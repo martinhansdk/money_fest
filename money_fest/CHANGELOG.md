@@ -2,6 +2,20 @@
 
 All notable changes to this add-on will be documented in this file.
 
+## [1.0.7] - 2026-01-01
+
+### Added
+- Download button for all batch statuses (in-progress, complete, archived)
+- CTRL+F (CMD+F on Mac) keyboard shortcut to focus payee filter in categorization view
+- Support for YYYY/MM/DD and YYYY-MM-DD date formats in AceMoney CSV imports
+- Support for AceMoney CSV header aliases: "Num" for "transaction", "S" for "status"
+
+### Changed
+- In-progress batches show confirmation dialog when downloading and are NOT auto-archived
+- Complete batches continue to auto-archive after download
+- CSV parser error messages now show both expected and found headers for easier troubleshooting
+- CSV format guide updated with supported date formats and header aliases
+
 ## [1.0.6] - 2025-12-31
 
 ### Fixed

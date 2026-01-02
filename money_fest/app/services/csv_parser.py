@@ -101,11 +101,11 @@ class AceMoneyParser(CSVParser):
 
         for row_num, row in enumerate(reader, start=2):  # Start at 2 (after header)
             try:
-                # Parse date: DD.MM.YYYY or DD-MM-YYYY → YYYY-MM-DD
+                # Parse date: Support multiple formats
                 date_str = row['date'].strip()
-                # Try both formats (with periods and hyphens)
+                # Try multiple date formats (DD.MM.YYYY, DD-MM-YYYY, YYYY/MM/DD, YYYY-MM-DD)
                 date_obj = None
-                for fmt in ['%d.%m.%Y', '%d-%m-%Y']:
+                for fmt in ['%d.%m.%Y', '%d-%m-%Y', '%Y/%m/%d', '%Y-%m-%d']:
                     try:
                         date_obj = datetime.strptime(date_str, fmt)
                         break
@@ -113,7 +113,7 @@ class AceMoneyParser(CSVParser):
                         continue
 
                 if not date_obj:
-                    raise ValueError(f"Invalid date format '{date_str}' (expected DD.MM.YYYY or DD-MM-YYYY)")
+                    raise ValueError(f"Invalid date format '{date_str}' (expected DD.MM.YYYY, DD-MM-YYYY, YYYY/MM/DD, or YYYY-MM-DD)")
 
                 date_internal = date_obj.strftime('%Y-%m-%d')
 
@@ -133,7 +133,8 @@ class AceMoneyParser(CSVParser):
                 elif deposit:
                     amount = float(deposit)
                 else:
-                    raise ValueError(f"Row {row_num}: Missing amount (no withdrawal or deposit)")
+                    # Skip rows with no amount (memo/note entries)
+                    continue
 
                 # Get original category and comment
                 original_category = row.get('category', '').strip()
@@ -268,7 +269,8 @@ class DanskeBankParser(CSVParser):
                 # Format: "1.234,56" → 1234.56 or "-41,80" → -41.80
                 amount_str = row[amount_col].strip().strip('"')
                 if not amount_str:
-                    raise ValueError(f"Row {row_num}: Missing amount")
+                    # Skip rows with no amount (memo/note entries)
+                    continue
 
                 # Convert Danish decimal format to float
                 # Remove thousand separators (periods) and replace decimal comma with period

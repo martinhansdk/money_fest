@@ -39,3 +39,4 @@ htmlcov/
 .DS_Store
 Thumbs.db
 .playwright-mcp/
+test-results/
