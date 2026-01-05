@@ -9,12 +9,19 @@ All notable changes to this add-on will be documented in this file.
 - CTRL+F (CMD+F on Mac) keyboard shortcut to focus payee filter in categorization view
 - Support for YYYY/MM/DD and YYYY-MM-DD date formats in AceMoney CSV imports
 - Support for AceMoney CSV header aliases: "Num" for "transaction", "S" for "status"
+- Automatic batch status update: batches are now automatically marked as 'complete' when all transactions are categorized
+- Migration script to fix existing batch statuses (migrations/fix_batch_status.py)
 
 ### Changed
 - In-progress batches show confirmation dialog when downloading and are NOT auto-archived
 - Complete batches continue to auto-archive after download
 - CSV parser error messages now show both expected and found headers for easier troubleshooting
 - CSV format guide updated with supported date formats and header aliases
+- CSV parser now skips rows with empty withdrawal and deposit amounts (memo/note entries)
+
+### Fixed
+- Batch status now correctly updates to 'complete' when all transactions are categorized
+- Download button now shows appropriate message based on actual batch status
 
 ## [1.0.6] - 2025-12-31
 

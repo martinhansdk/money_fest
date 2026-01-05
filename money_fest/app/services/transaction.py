@@ -150,6 +150,10 @@ def update_transaction(
 
     db.commit()
 
+    # Check if batch is now complete
+    from app.services.batch import update_batch_status_if_complete
+    update_batch_status_if_complete(db, transaction['batch_id'])
+
     # Return updated transaction
     return get_transaction_by_id(db, transaction_id)
 
@@ -183,7 +187,7 @@ def bulk_update_transactions(
         if not category_exists(db, category):
             raise ValueError(f"Category '{category}' does not exist")
 
-    # Update each transaction
+    # Update each transaction (update_transaction handles batch status check)
     updated_count = 0
     for txn_id in transaction_ids:
         try:

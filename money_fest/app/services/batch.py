@@ -228,6 +228,53 @@ def unarchive_batch(db: sqlite3.Connection, batch_id: int) -> None:
     db.commit()
 
 
+def update_batch_status_if_complete(db: sqlite3.Connection, batch_id: int) -> None:
+    """
+    Check if all transactions in a batch are categorized and update status to 'complete'
+
+    Only updates batches that are currently 'in_progress'. Does not affect 'archived' batches.
+
+    Args:
+        db: Database connection
+        batch_id: Batch ID to check
+    """
+    # Get current batch status
+    cursor = db.execute("""
+        SELECT status FROM batches WHERE id = ?
+    """, (batch_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        return
+
+    current_status = row[0]
+
+    # Only update if currently in_progress
+    if current_status != 'in_progress':
+        return
+
+    # Check if all transactions are categorized
+    cursor = db.execute("""
+        SELECT COUNT(*) as total,
+               SUM(CASE WHEN status = 'categorized' THEN 1 ELSE 0 END) as categorized
+        FROM transactions
+        WHERE batch_id = ?
+    """, (batch_id,))
+
+    row = cursor.fetchone()
+    total = row[0]
+    categorized = row[1]
+
+    # If all transactions are categorized, mark batch as complete
+    if total > 0 and categorized == total:
+        db.execute("""
+            UPDATE batches
+            SET status = 'complete', updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (batch_id,))
+        db.commit()
+
+
 def calculate_batch_date_range(
     db: sqlite3.Connection,
     batch_id: int
