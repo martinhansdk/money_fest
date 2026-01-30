@@ -26,6 +26,7 @@ def similarity_ratio(a: str, b: str) -> float:
 def find_similar_by_payee(
     db: sqlite3.Connection,
     user_id: int,
+    batch_id: int,
     payee: str,
     exclude_transaction_id: Optional[int] = None,
     min_similarity: float = 0.6,
@@ -37,6 +38,7 @@ def find_similar_by_payee(
     Args:
         db: Database connection
         user_id: User ID to scope search
+        batch_id: Batch ID to scope search (only search within same batch)
         payee: Payee string to match against
         exclude_transaction_id: Transaction ID to exclude from results
         min_similarity: Minimum similarity threshold (0-1)
@@ -57,10 +59,10 @@ def find_similar_by_payee(
             b.name as batch_name
         FROM transactions t
         JOIN batches b ON t.batch_id = b.id
-        WHERE b.user_id = ?
+        WHERE b.user_id = ? AND t.batch_id = ?
         ORDER BY t.date DESC
         LIMIT 1000
-    """, (user_id,))
+    """, (user_id, batch_id))
 
     all_transactions = cursor.fetchall()
 
@@ -95,6 +97,7 @@ def find_similar_by_payee(
 def find_similar_by_amount(
     db: sqlite3.Connection,
     user_id: int,
+    batch_id: int,
     amount: float,
     exclude_transaction_id: Optional[int] = None,
     tolerance: float = 0.10,
@@ -106,6 +109,7 @@ def find_similar_by_amount(
     Args:
         db: Database connection
         user_id: User ID to scope search
+        batch_id: Batch ID to scope search (only search within same batch)
         amount: Amount to match against
         exclude_transaction_id: Transaction ID to exclude from results
         tolerance: Percentage tolerance (0.10 = ±10%)
@@ -139,11 +143,12 @@ def find_similar_by_amount(
         FROM transactions t
         JOIN batches b ON t.batch_id = b.id
         WHERE b.user_id = ?
+            AND t.batch_id = ?
             AND t.amount BETWEEN ? AND ?
             AND (? IS NULL OR t.id != ?)
         ORDER BY ABS(t.amount - ?) ASC, t.date DESC
         LIMIT ?
-    """, (user_id, min_amount, max_amount, exclude_transaction_id, exclude_transaction_id, amount, limit))
+    """, (user_id, batch_id, min_amount, max_amount, exclude_transaction_id, exclude_transaction_id, amount, limit))
 
     transactions = []
     for row in cursor.fetchall():
@@ -282,16 +287,16 @@ def get_similar_transactions(
         'note': row[6]
     }
 
-    # Find similar transactions
+    # Find similar transactions (within the same batch only)
     by_payee = find_similar_by_payee(
-        db, user_id, transaction['payee'],
+        db, user_id, transaction['batch_id'], transaction['payee'],
         exclude_transaction_id=transaction_id,
         min_similarity=min_similarity,
         limit=30
     )
 
     by_amount = find_similar_by_amount(
-        db, user_id, float(transaction['amount']),
+        db, user_id, transaction['batch_id'], float(transaction['amount']),
         exclude_transaction_id=transaction_id,
         tolerance=tolerance,
         limit=30

@@ -187,6 +187,14 @@
             <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Note (Optional)</p>
             <textarea id="noteInput" placeholder="Add a note..." class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 resize-y min-h-[50px]"></textarea>
         </div>
+
+        <!-- Create Rule Option -->
+        <div id="createRuleOption" class="hidden pt-3 border-t border-gray-100">
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input type="checkbox" id="alsoCreateRule" class="w-4 h-4 text-brand-500 rounded">
+                <span>Also create a rule for this payee</span>
+            </label>
+        </div>
     </div>
 
     <!-- Create Rule Modal -->
@@ -202,14 +210,33 @@
                 <div class="p-4 space-y-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Pattern</label>
-                        <input type="text" id="rulePattern" placeholder="e.g., Netto, IKEA, Spotify"
+                        <input type="text" id="rulePattern" placeholder="e.g., Netto, IKEA, Spotify" oninput="previewRuleMatches()"
                                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500">
                         <p class="text-xs text-gray-400 mt-1">The rule will match any payee containing this text</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Match Type</label>
+                        <select id="ruleMatchType" onchange="previewRuleMatches()" class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500">
+                            <option value="contains">Contains</option>
+                            <option value="exact">Exact match</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Category</label>
                         <input type="text" id="ruleCategory" readonly class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg bg-gray-50">
                     </div>
+
+                    <!-- Preview Section -->
+                    <div id="rulePreviewSection" class="border-t pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Preview</span>
+                            <span id="rulePreviewCount" class="text-xs text-gray-500">0 transactions will match</span>
+                        </div>
+                        <div id="rulePreviewList" class="max-h-40 overflow-y-auto space-y-1 text-sm">
+                            <div class="text-gray-400 text-center py-2">Type a pattern to see matching transactions</div>
+                        </div>
+                    </div>
+
                     <div class="flex gap-2 justify-end pt-2">
                         <button onclick="closeCreateRuleModal()" class="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Cancel</button>
                         <button onclick="submitCreateRule()" class="px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg">Create Rule</button>
@@ -283,6 +310,7 @@
                 <!-- Footer -->
                 <div class="flex gap-2 justify-end p-4 border-t border-gray-200">
                     <button onclick="closeSimilarModal()" class="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Close</button>
+                    <button id="createRuleFromSimilarBtn" onclick="createRuleFromSimilar()" class="hidden px-4 py-2 text-sm font-medium text-brand-500 border border-brand-500 hover:bg-brand-500/10 rounded-lg">+ Rule</button>
                     <button id="categorizeSimilarBtn" onclick="categorizeSimilar()" class="hidden px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg">Categorize Selected</button>
                 </div>
             </div>
@@ -360,7 +388,8 @@
             batchWS.on('transaction_updated', (message) => {
                 const updatedTransaction = message.transaction;
                 const updatedByUserId = message.user_id;
-                const index = transactions.findIndex(t => t.id === updatedTransaction.id);
+                // Use == for comparison to handle string/int type coercion
+                const index = transactions.findIndex(t => t.id == updatedTransaction.id);
                 if (index !== -1) {
                     transactions[index] = updatedTransaction;
                     renderTransactions();
@@ -619,6 +648,9 @@
             const amount = parseFloat(selectedTransaction.amount);
             amountElem.textContent = (amount >= 0 ? '+' : '-') + Math.abs(amount).toFixed(2);
             document.getElementById('selectedTransactionInfo').classList.remove('hidden');
+            // Show "also create rule" option for single transactions
+            document.getElementById('createRuleOption').classList.remove('hidden');
+            document.getElementById('alsoCreateRule').checked = false;
             await loadRuleSuggestions(id);
             openSelector();
         }
@@ -629,13 +661,18 @@
                 return;
             }
             isBulkMode = bulk;
-            if (bulk) document.getElementById('noteInput').value = '';
+            if (bulk) {
+                document.getElementById('noteInput').value = '';
+                document.getElementById('createRuleOption').classList.add('hidden');
+            }
             document.getElementById('selectedTransactionInfo').classList.add('hidden');
             openSelector();
         }
 
         async function assignCategory(categoryPath) {
             const note = document.getElementById('noteInput').value.trim() || null;
+            const alsoCreateRule = !isBulkMode && document.getElementById('alsoCreateRule').checked;
+            const payeeForRule = !isBulkMode && selectedTransaction ? selectedTransaction.payee : null;
             try {
                 if (isBulkMode) {
                     const response = await fetch('/transactions/bulk', {
@@ -664,6 +701,11 @@
                 await loadFrequentCategories();
                 const count = isBulkMode ? selectedTransactions.size : 1;
                 toast.success(`${count} transaction${count > 1 ? 's' : ''} categorized as "${categoryPath}"`);
+
+                // Open create rule modal if "also create rule" was checked
+                if (alsoCreateRule && payeeForRule) {
+                    promptCreateRule(payeeForRule, categoryPath);
+                }
             } catch (error) {
                 console.error('Error assigning category:', error);
                 toast.error('Failed to assign category. Please try again.');
@@ -748,44 +790,115 @@
             const words = payee.trim().split(/\s+/);
             document.getElementById('rulePattern').value = words[0];
             document.getElementById('ruleCategory').value = category;
+            document.getElementById('ruleMatchType').value = 'contains';
             createRuleModal.show();
             setTimeout(() => {
                 const input = document.getElementById('rulePattern');
                 input.focus();
                 input.select();
+                previewRuleMatches();
             }, 100);
+        }
+
+        // Rule preview with debounce
+        let previewTimeout = null;
+        function previewRuleMatches() {
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(async () => {
+                const pattern = document.getElementById('rulePattern').value.trim();
+                const matchType = document.getElementById('ruleMatchType').value;
+                if (!pattern) {
+                    document.getElementById('rulePreviewList').innerHTML = '<div class="text-gray-400 text-center py-2">Type a pattern to see matching transactions</div>';
+                    document.getElementById('rulePreviewCount').textContent = '0 transactions will match';
+                    return;
+                }
+                try {
+                    const response = await fetch('/rules/preview', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ pattern, match_type: matchType })
+                    });
+                    if (!response.ok) throw new Error('Preview failed');
+                    const transactions = await response.json();
+                    renderRulePreview(transactions);
+                } catch (error) {
+                    console.error('Preview failed:', error);
+                    document.getElementById('rulePreviewList').innerHTML = '<div class="text-red-400 text-center py-2">Failed to load preview</div>';
+                }
+            }, 300);
+        }
+
+        function renderRulePreview(transactions) {
+            const list = document.getElementById('rulePreviewList');
+            const count = document.getElementById('rulePreviewCount');
+            count.textContent = `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} will match`;
+            if (transactions.length === 0) {
+                list.innerHTML = '<div class="text-gray-400 text-center py-2">No matching transactions</div>';
+                return;
+            }
+            list.innerHTML = transactions.slice(0, 20).map(t => `
+                <div class="flex justify-between items-center py-1 px-2 bg-gray-50 rounded">
+                    <div class="truncate flex-1">
+                        <span class="font-medium">${escapeHtml(t.payee)}</span>
+                        <span class="text-gray-400 text-xs ml-2">${escapeHtml(t.batch_name || '')}</span>
+                    </div>
+                    <span class="text-xs ${t.category ? 'text-green-600' : 'text-gray-400'}">${t.category ? escapeHtml(t.category) : 'uncategorized'}</span>
+                </div>
+            `).join('');
+            if (transactions.length > 20) {
+                list.innerHTML += `<div class="text-center text-gray-400 text-xs py-1">...and ${transactions.length - 20} more</div>`;
+            }
+        }
+
+        // Create rule from similar transactions dialog
+        function createRuleFromSimilar() {
+            const category = selectedSimilarCategory || document.getElementById('similarCategorySearch').value.trim();
+            if (!category) {
+                toast.error('Please select a category first');
+                return;
+            }
+            if (!similarData?.transaction?.payee) {
+                toast.error('No reference transaction available');
+                return;
+            }
+            promptCreateRule(similarData.transaction.payee, category);
         }
 
         function closeCreateRuleModal() {
             createRuleModal.hide();
             document.getElementById('rulePattern').value = '';
             document.getElementById('ruleCategory').value = '';
+            document.getElementById('ruleMatchType').value = 'contains';
+            document.getElementById('rulePreviewList').innerHTML = '<div class="text-gray-400 text-center py-2">Type a pattern to see matching transactions</div>';
+            document.getElementById('rulePreviewCount').textContent = '0 transactions will match';
         }
 
         async function submitCreateRule() {
             const pattern = document.getElementById('rulePattern').value.trim();
             const category = document.getElementById('ruleCategory').value;
+            const matchType = document.getElementById('ruleMatchType').value;
             if (!pattern) { toast.error('Pattern cannot be empty'); return; }
             try {
                 const response = await fetch('/rules', { credentials: 'include' });
                 if (response.ok) {
                     const existingRules = await response.json();
-                    if (existingRules.find(r => r.pattern.toLowerCase() === pattern.toLowerCase() && r.match_type === 'contains' && r.category === category)) {
+                    if (existingRules.find(r => r.pattern.toLowerCase() === pattern.toLowerCase() && r.match_type === matchType && r.category === category)) {
                         toast.error('This rule already exists'); return;
                     }
                 }
             } catch (error) {}
-            await createRuleFromTransaction(pattern, category);
+            await createRuleFromTransaction(pattern, category, matchType);
             closeCreateRuleModal();
         }
 
-        async function createRuleFromTransaction(pattern, category) {
+        async function createRuleFromTransaction(pattern, category, matchType = 'contains') {
             try {
                 const response = await fetch('/rules', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ pattern, match_type: 'contains', category })
+                    body: JSON.stringify({ pattern, match_type: matchType, category })
                 });
                 if (!response.ok) throw new Error((await response.json()).detail || 'Failed to create rule');
                 toast.success(`Rule created: "${pattern}" → ${category}`);
@@ -799,6 +912,11 @@
         function formatDate(dateStr) {
             const date = new Date(dateStr);
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatAmount(amount) {
+            const num = parseFloat(amount);
+            return (num >= 0 ? '+' : '') + num.toFixed(2);
         }
 
         function escapeHtml(text) {
@@ -925,12 +1043,21 @@
             }).join('');
 
             const categorySection = document.getElementById('similarCategorySection');
+            const createRuleBtn = document.getElementById('createRuleFromSimilarBtn');
+            const category = selectedSimilarCategory || document.getElementById('similarCategorySearch').value.trim();
             if (selectedSimilar.size > 0) {
                 categorizeSimilarBtn.classList.remove('hidden');
                 categorySection.classList.remove('hidden');
+                // Show create rule button if we have selections AND a category
+                if (category) {
+                    createRuleBtn.classList.remove('hidden');
+                } else {
+                    createRuleBtn.classList.add('hidden');
+                }
             } else {
                 categorizeSimilarBtn.classList.add('hidden');
                 categorySection.classList.add('hidden');
+                createRuleBtn.classList.add('hidden');
             }
             updateSelectAllCheckbox(items);
         }
@@ -990,6 +1117,15 @@
         function searchSimilarCategories() {
             const query = document.getElementById('similarCategorySearch').value.toLowerCase();
             const results = document.getElementById('similarCategoryResults');
+
+            // Update create rule button visibility based on typed category
+            const createRuleBtn = document.getElementById('createRuleFromSimilarBtn');
+            if (selectedSimilar.size > 0 && query.length >= 2) {
+                createRuleBtn.classList.remove('hidden');
+            } else if (!selectedSimilarCategory) {
+                createRuleBtn.classList.add('hidden');
+            }
+
             if (query.length < 2) { results.classList.add('hidden'); return; }
             const filtered = allCategories.filter(cat => cat.full_path.toLowerCase().includes(query)).slice(0, 20);
             if (filtered.length === 0 && query.includes(':')) {
@@ -1005,6 +1141,11 @@
             selectedSimilarCategory = categoryPath;
             document.getElementById('similarCategorySearch').value = categoryPath;
             document.getElementById('similarCategoryResults').classList.add('hidden');
+            // Update create rule button visibility
+            const createRuleBtn = document.getElementById('createRuleFromSimilarBtn');
+            if (selectedSimilar.size > 0 && categoryPath) {
+                createRuleBtn.classList.remove('hidden');
+            }
         }
 
         async function createAndAssignSimilarCategory(full_path) {
@@ -1028,29 +1169,34 @@
             if (selectedSimilar.size === 0) { toast.error('No transactions selected'); return; }
             const category = selectedSimilarCategory || document.getElementById('similarCategorySearch').value.trim();
             if (!category) { toast.error('Please select a category'); return; }
-            try {
-                // Include both selected similar transactions AND the reference transaction
-                const transactionIds = Array.from(selectedSimilar);
-                if (similarData && similarData.transaction && similarData.transaction.id) {
-                    // Add reference transaction if not already in the list
-                    if (!transactionIds.includes(similarData.transaction.id)) {
-                        transactionIds.push(similarData.transaction.id);
-                    }
-                }
-                const response = await fetch('/transactions/bulk', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ transaction_ids: transactionIds, category })
-                });
-                if (!response.ok) throw new Error('Failed to categorize transactions');
-                const result = await response.json();
-                toast.success(`Categorized ${result.updated} transaction(s) as ${category}`);
-                await loadTransactions();
-                closeSimilarModal();
-            } catch (error) {
-                toast.error('Failed to categorize transactions');
+
+            // Include both selected similar transactions AND the reference transaction
+            // Use a Set to ensure uniqueness and handle type coercion (string vs int IDs)
+            const idSet = new Set(Array.from(selectedSimilar).map(id => parseInt(id, 10)));
+            if (similarData?.transaction?.id) {
+                idSet.add(parseInt(similarData.transaction.id, 10));
             }
+            const transactionIds = Array.from(idSet);
+            const count = transactionIds.length;
+
+            // Close modal immediately (optimistic UI)
+            closeSimilarModal();
+            toast.info(`Categorizing ${count} transaction(s)...`);
+
+            // Run API call in background
+            fetch('/transactions/bulk', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ transaction_ids: transactionIds, category })
+            }).then(response => {
+                if (!response.ok) throw new Error('Failed');
+                return response.json();
+            }).then(result => {
+                toast.success(`Categorized ${result.updated} transaction(s) as ${category}`);
+            }).catch(error => {
+                toast.error('Failed to categorize transactions');
+            });
         }
     </script>
 </body>
