@@ -1,5 +1,5 @@
 name: Money Fest
-version: "1.0.8"
+version: "1.0.9"
 slug: money_fest
 description: "Collaborative bank transaction categorizer for couples"
 url: "https://github.com/martinhansdk/money_fest"
@@ -14,7 +14,7 @@ ports:
   8080/tcp: 1111
 ports_description:
   8080/tcp: "Money Fest web interface"
-webui: "http://[HOST]:[PORT:1111]"
+webui: "https://[HOST]:[PORT:1111]"
 ingress: false
 panel_icon: mdi:cash-multiple
 map:

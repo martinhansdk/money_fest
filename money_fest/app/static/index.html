@@ -4,17 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Money Fest - Login</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#667eea',
+                            600: '#764ba2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-gradient:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="login-card">
-            <h1>Money Fest</h1>
-            <p class="subtitle">Transaction Categorizer</p>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+        <div class="bg-white rounded-xl p-6 shadow-xl">
+            <h1 class="text-2xl font-bold text-gray-800 text-center mb-1">Money Fest</h1>
+            <p class="text-center text-gray-500 text-sm mb-6">Transaction Categorizer</p>
 
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Username</label>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-semibold text-gray-700 mb-1">Username</label>
                     <input
                         type="text"
                         id="username"
@@ -22,27 +48,32 @@
                         required
                         autocomplete="username"
                         autofocus
+                        class="w-full px-3 py-2.5 text-base border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 transition-colors"
                     >
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
+                <div>
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
                     <input
                         type="password"
                         id="password"
                         name="password"
                         required
                         autocomplete="current-password"
+                        class="w-full px-3 py-2.5 text-base border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 transition-colors"
                     >
                 </div>
 
-                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="errorMessage" class="hidden p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm"></div>
 
-                <button type="submit" class="btn-primary">Login</button>
+                <button type="submit" class="w-full py-3 px-4 text-base font-semibold text-white btn-gradient rounded-lg transition-all active:scale-[0.98] min-h-[44px]">
+                    Login
+                </button>
             </form>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
     <script>
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
@@ -51,7 +82,7 @@
             e.preventDefault();
 
             // Clear previous error
-            errorMessage.style.display = 'none';
+            errorMessage.classList.add('hidden');
             errorMessage.textContent = '';
 
             // Get form data
@@ -76,11 +107,11 @@
                     // Login failed, show error
                     const data = await response.json();
                     errorMessage.textContent = data.detail || 'Login failed';
-                    errorMessage.style.display = 'block';
+                    errorMessage.classList.remove('hidden');
                 }
             } catch (error) {
                 errorMessage.textContent = 'Network error. Please try again.';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.remove('hidden');
             }
         });
     </script>

@@ -2,6 +2,20 @@
 
 All notable changes to this add-on will be documented in this file.
 
+## [1.0.9] - 2026-01-30
+
+### Changed
+- Migrated frontend from custom CSS/JS to Tailwind CSS + Flowbite for denser layouts and more polished UI
+- Updated all 6 HTML pages (login, setup, users, batches, rules, categorize) with Tailwind utility classes
+- Modals now use Flowbite Modal component for consistent behavior
+- Category selector uses custom bottom drawer with smooth animations
+- Toast notifications restyled with Tailwind classes
+
+### Fixed
+- Similar transactions modal now pre-fills category from similar transactions when reference transaction is uncategorized
+- "Categorize Selected" in similar transactions modal now also categorizes the reference transaction (not just similar ones)
+- Hover buttons (Similar, Rule) now properly appear on transaction row hover
+
 ## [1.0.7] - 2026-01-01
 
 ### Added

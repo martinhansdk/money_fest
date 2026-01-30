@@ -4,183 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Money Fest - Rules</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#667eea',
+                            600: '#764ba2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-
-        .modal.visible {
-            display: flex;
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            max-width: 600px;
-            width: 90%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .modal-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: #666;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            line-height: 28px;
-        }
-
-        .modal-close:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .form-group input[type="text"],
-        .form-group select {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 14px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        .form-group input[type="text"]:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .form-group small {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-            display: block;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
-        }
-
-        .error-message {
-            color: #d32f2f;
-            font-size: 13px;
-            margin-top: 8px;
-            padding: 8px;
-            background: #ffebee;
-            border-radius: 4px;
+        .btn-gradient:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Categorization Rules</h1>
-            <div class="header-actions">
-                <button class="btn btn-secondary" onclick="goBack()">← Back</button>
-                <button class="btn btn-primary" onclick="showCreateRuleModal()">+ Create Rule</button>
+<body class="min-h-screen p-4">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-xl p-4 mb-4 shadow-lg flex flex-wrap justify-between items-center gap-3">
+            <h1 class="text-xl font-bold text-gray-800">Categorization Rules</h1>
+            <div class="flex gap-2">
+                <button onclick="goBack()" class="px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                    ← Back
+                </button>
+                <button data-modal-target="ruleModal" data-modal-toggle="ruleModal" onclick="showCreateRuleModal()" class="px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg transition-all">
+                    + Create Rule
+                </button>
             </div>
         </div>
 
-        <div class="rules-list" id="rulesList">
-            <p class="loading">Loading rules...</p>
+        <!-- Rules List -->
+        <div id="rulesList" class="space-y-2">
+            <p class="text-white text-center py-8">Loading rules...</p>
         </div>
     </div>
 
     <!-- Create/Edit Rule Modal -->
-    <div class="modal" id="ruleModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title" id="ruleModalTitle">Create Rule</div>
-                <button class="modal-close" onclick="closeRuleModal()">×</button>
+    <div id="ruleModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-lg max-h-full">
+            <div class="relative bg-white rounded-xl shadow-xl">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                    <h3 id="ruleModalTitle" class="text-lg font-semibold text-gray-800">Create Rule</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-100 hover:text-gray-700 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center" data-modal-hide="ruleModal">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+                <!-- Modal Body -->
+                <form id="ruleForm" onsubmit="saveRule(event)" class="p-4 space-y-4">
+                    <div>
+                        <label for="rulePattern" class="block text-sm font-semibold text-gray-700 mb-1">Pattern</label>
+                        <input type="text" id="rulePattern" required placeholder="e.g., Starbucks"
+                               class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 transition-colors">
+                        <p class="text-xs text-gray-400 mt-1">Text to match in transaction payee</p>
+                    </div>
+
+                    <div>
+                        <label for="ruleMatchType" class="block text-sm font-semibold text-gray-700 mb-1">Match Type</label>
+                        <select id="ruleMatchType" required class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 transition-colors bg-white">
+                            <option value="contains">Contains</option>
+                            <option value="exact">Exact match</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="ruleCategory" class="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+                        <select id="ruleCategory" required class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 transition-colors bg-white">
+                            <option value="">Select a category...</option>
+                        </select>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="pt-4 border-t border-gray-100">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Matching Transactions <span id="previewCount" class="text-brand-500 font-normal"></span></h4>
+                        <div id="previewList" class="max-h-40 overflow-y-auto border border-gray-100 rounded-lg p-2 text-sm">
+                            <p class="text-gray-400 italic p-2">Enter a pattern to see matching transactions</p>
+                        </div>
+                    </div>
+
+                    <div id="ruleError" class="hidden p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm"></div>
+
+                    <div class="flex gap-2 justify-end pt-2">
+                        <button type="button" data-modal-hide="ruleModal" class="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" id="saveRuleButton" class="px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg transition-all">
+                            Create Rule
+                        </button>
+                    </div>
+                </form>
             </div>
-            <form id="ruleForm" onsubmit="saveRule(event)">
-                <div class="form-group">
-                    <label for="rulePattern">Pattern</label>
-                    <input type="text" id="rulePattern" required placeholder="e.g., Starbucks">
-                    <small>Text to match in transaction payee</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="ruleMatchType">Match Type</label>
-                    <select id="ruleMatchType" required>
-                        <option value="contains">Contains</option>
-                        <option value="exact">Exact match</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="ruleCategory">Category</label>
-                    <select id="ruleCategory" required>
-                        <option value="">Select a category...</option>
-                    </select>
-                </div>
-
-                <div id="rulePreview">
-                    <h3>Matching Transactions <span id="previewCount"></span></h3>
-                    <div id="previewList" class="preview-list"></div>
-                </div>
-
-                <div id="ruleError" class="error-message" style="display: none;"></div>
-
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeRuleModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="saveRuleButton">Create Rule</button>
-                </div>
-            </form>
         </div>
     </div>
 
     <script src="/static/js/toast.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
     <script>
         let categories = [];
         let rules = [];
         let editingRuleId = null;
+        let ruleModal = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const $targetEl = document.getElementById('ruleModal');
+            ruleModal = new Modal($targetEl);
+            loadCategories();
+            loadRules();
+        });
 
         async function loadCategories() {
             try {
@@ -189,7 +136,6 @@
 
                 categories = await response.json();
 
-                // Populate category select
                 const select = document.getElementById('ruleCategory');
                 select.innerHTML = '<option value="">Select a category...</option>';
 
@@ -214,7 +160,7 @@
                 renderRules();
             } catch (error) {
                 console.error('Error loading rules:', error);
-                document.getElementById('rulesList').innerHTML = '<p class="error">Failed to load rules</p>';
+                document.getElementById('rulesList').innerHTML = '<p class="text-red-200 text-center py-8">Failed to load rules</p>';
             }
         }
 
@@ -223,27 +169,33 @@
 
             if (rules.length === 0) {
                 rulesList.innerHTML = `
-                    <div class="empty-state">
-                        <h2>No rules yet</h2>
-                        <p>Create rules to get smart category suggestions when categorizing transactions</p>
-                        <button class="btn btn-primary" onclick="showCreateRuleModal()">+ Create First Rule</button>
+                    <div class="bg-white rounded-xl p-8 text-center shadow-lg">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">No rules yet</h2>
+                        <p class="text-gray-500 text-sm mb-4">Create rules to get smart category suggestions when categorizing transactions</p>
+                        <button onclick="showCreateRuleModal()" class="px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg transition-all">
+                            + Create First Rule
+                        </button>
                     </div>
                 `;
                 return;
             }
 
             rulesList.innerHTML = rules.map(rule => `
-                <div class="rule-card">
-                    <div class="rule-info">
-                        <div class="rule-pattern">
-                            <strong>${escapeHtml(rule.pattern)}</strong>
-                            <span class="badge">${rule.match_type}</span>
+                <div class="bg-white rounded-lg p-3 shadow flex justify-between items-center gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-semibold text-gray-800 truncate">${escapeHtml(rule.pattern)}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-brand-500 text-white rounded">${rule.match_type}</span>
                         </div>
-                        <div class="rule-category">→ ${escapeHtml(rule.category)}</div>
+                        <div class="text-sm text-gray-500 truncate">→ ${escapeHtml(rule.category)}</div>
                     </div>
-                    <div class="rule-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="editRule(${rule.id})">Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteRule(${rule.id})">Delete</button>
+                    <div class="flex gap-2 flex-shrink-0">
+                        <button onclick="editRule(${rule.id})" class="px-2.5 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                            Edit
+                        </button>
+                        <button onclick="deleteRule(${rule.id})" class="px-2.5 py-1.5 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
+                            Delete
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -254,14 +206,10 @@
             document.getElementById('ruleModalTitle').textContent = 'Create Rule';
             document.getElementById('saveRuleButton').textContent = 'Create Rule';
             document.getElementById('ruleForm').reset();
-            document.getElementById('ruleError').style.display = 'none';
-            document.getElementById('previewList').innerHTML = '<p class="muted">Enter a pattern to see matching transactions</p>';
+            document.getElementById('ruleError').classList.add('hidden');
+            document.getElementById('previewList').innerHTML = '<p class="text-gray-400 italic p-2">Enter a pattern to see matching transactions</p>';
             document.getElementById('previewCount').textContent = '';
-            document.getElementById('ruleModal').classList.add('visible');
-        }
-
-        function closeRuleModal() {
-            document.getElementById('ruleModal').classList.remove('visible');
+            ruleModal.show();
         }
 
         async function editRule(ruleId) {
@@ -274,12 +222,10 @@
             document.getElementById('rulePattern').value = rule.pattern;
             document.getElementById('ruleMatchType').value = rule.match_type;
             document.getElementById('ruleCategory').value = rule.category;
-            document.getElementById('ruleError').style.display = 'none';
+            document.getElementById('ruleError').classList.add('hidden');
 
-            // Update preview
             await updatePreview();
-
-            document.getElementById('ruleModal').classList.add('visible');
+            ruleModal.show();
         }
 
         async function saveRule(event) {
@@ -293,11 +239,10 @@
 
             if (!pattern || !matchType || !category) {
                 errorDiv.textContent = 'Please fill in all fields';
-                errorDiv.style.display = 'block';
+                errorDiv.classList.remove('hidden');
                 return;
             }
 
-            // Check for duplicate rule (only when creating, not editing)
             if (!editingRuleId) {
                 const duplicate = rules.find(r =>
                     r.pattern.toLowerCase() === pattern.toLowerCase() &&
@@ -307,7 +252,7 @@
 
                 if (duplicate) {
                     errorDiv.textContent = 'This rule already exists';
-                    errorDiv.style.display = 'block';
+                    errorDiv.classList.remove('hidden');
                     return;
                 }
             }
@@ -330,12 +275,12 @@
                 }
 
                 toast.success(editingRuleId ? 'Rule updated successfully' : 'Rule created successfully');
-                closeRuleModal();
+                ruleModal.hide();
                 await loadRules();
             } catch (error) {
                 console.error('Error saving rule:', error);
                 errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
+                errorDiv.classList.remove('hidden');
             } finally {
                 saveButton.disabled = false;
             }
@@ -366,7 +311,7 @@
             const previewCount = document.getElementById('previewCount');
 
             if (!pattern) {
-                previewList.innerHTML = '<p class="muted">Enter a pattern to see matching transactions</p>';
+                previewList.innerHTML = '<p class="text-gray-400 italic p-2">Enter a pattern to see matching transactions</p>';
                 previewCount.textContent = '';
                 return;
             }
@@ -383,32 +328,30 @@
                 const transactions = await response.json();
 
                 if (transactions.length === 0) {
-                    previewList.innerHTML = '<p class="muted">No matching transactions found</p>';
+                    previewList.innerHTML = '<p class="text-gray-400 italic p-2">No matching transactions found</p>';
                     previewCount.textContent = '';
                 } else {
                     previewCount.textContent = `(${transactions.length})`;
                     previewList.innerHTML = transactions.slice(0, 10).map(t => {
                         const amount = parseFloat(t.amount);
-                        const color = amount >= 0 ? '#4caf50' : '#f44336';
+                        const color = amount >= 0 ? 'text-green-600' : 'text-red-600';
                         const sign = amount >= 0 ? '+' : '';
                         return `
-                            <div class="preview-item">
-                                <span>${escapeHtml(t.payee)}</span>
-                                <span style="color: ${color}">${sign}${amount.toFixed(2)}</span>
+                            <div class="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
+                                <span class="truncate">${escapeHtml(t.payee)}</span>
+                                <span class="${color} font-medium">${sign}${amount.toFixed(2)}</span>
                             </div>
                         `;
-                    }).join('') + (transactions.length > 10 ? '<p class="muted">...and ' + (transactions.length - 10) + ' more</p>' : '');
+                    }).join('') + (transactions.length > 10 ? `<p class="text-gray-400 italic p-2 text-center">...and ${transactions.length - 10} more</p>` : '');
                 }
             } catch (error) {
                 console.error('Error previewing:', error);
-                previewList.innerHTML = '<p class="error">Failed to load preview</p>';
+                previewList.innerHTML = '<p class="text-red-500 p-2">Failed to load preview</p>';
             }
         }
 
-        // Debounce preview updates
         const debouncedPreview = debounce(updatePreview, 500);
 
-        // Add input listeners
         document.getElementById('rulePattern').addEventListener('input', debouncedPreview);
         document.getElementById('ruleMatchType').addEventListener('change', updatePreview);
 
@@ -421,130 +364,6 @@
         function goBack() {
             window.location.href = '/static/batches.html';
         }
-
-        // Load data on page load
-        loadCategories();
-        loadRules();
     </script>
-
-    <style>
-        .rules-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .rule-card {
-            background: white;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .rule-info {
-            flex: 1;
-        }
-
-        .rule-pattern {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
-        }
-
-        .rule-category {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .rule-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .badge {
-            background: #667eea;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 14px;
-        }
-
-        .btn-danger {
-            background: #f44336;
-        }
-
-        .btn-danger:hover {
-            background: #d32f2f;
-        }
-
-        #rulePreview {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        #rulePreview h3 {
-            font-size: 16px;
-            margin-bottom: 12px;
-            color: #333;
-        }
-
-        #rulePreview h3 span {
-            color: #667eea;
-            font-weight: normal;
-        }
-
-        .preview-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #eee;
-            border-radius: 4px;
-            padding: 8px;
-        }
-
-        .preview-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px;
-            border-bottom: 1px solid #f5f5f5;
-            font-size: 14px;
-        }
-
-        .preview-item:last-child {
-            border-bottom: none;
-        }
-
-        .muted {
-            color: #999;
-            font-style: italic;
-            padding: 8px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .empty-state h2 {
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .empty-state p {
-            color: #666;
-            margin-bottom: 20px;
-        }
-    </style>
 </body>
 </html>

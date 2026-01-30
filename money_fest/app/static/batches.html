@@ -4,400 +4,142 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Money Fest - Batches</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#667eea',
+                            600: '#764ba2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         body {
-            align-items: flex-start;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            width: 100%;
-        }
-
-        .header {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .header h1 {
-            text-align: left;
-            margin: 0;
-            font-size: 28px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            min-height: 44px;
-        }
-
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            width: auto;
         }
-
-        .batch-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-
-        .batch-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+        .btn-gradient:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
-
-        .batch-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-        }
-
-        .batch-card.archived {
-            opacity: 0.7;
-        }
-
-        .batch-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-
-        .batch-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .batch-meta {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .batch-status {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-in-progress {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-
-        .status-archived {
-            background: #f5f5f5;
-            color: #666;
-        }
-
-        .progress-section {
-            margin-top: 16px;
-        }
-
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            margin-bottom: 8px;
-            color: #666;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background: #f0f0f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
+        .progress-gradient {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s;
         }
-
-        .empty-state {
-            background: white;
-            border-radius: 12px;
-            padding: 60px 40px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
         }
-
-        .empty-state h2 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 8px;
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
-
-        .empty-state p {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: white;
-            font-size: 16px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.visible {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .modal-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: #666;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="file"] {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 14px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input[type="text"]:focus,
-        .form-group input[type="file"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .upload-info {
-            font-size: 12px;
-            color: #666;
-            margin-top: 6px;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
-        }
-
-        .error-text {
-            color: #d32f2f;
-            font-size: 13px;
-            margin-top: 8px;
-        }
-
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: auto;
-        }
-
-        .checkbox-container input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .checkbox-container label {
-            font-size: 14px;
-            color: #333;
-            cursor: pointer;
-            margin: 0;
-            font-weight: 500;
-        }
-
-        .btn-danger {
-            background: #d32f2f;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #b71c1c;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-            min-height: auto;
-        }
-
-        .batch-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        @media (max-width: 600px) {
-            .header {
-                padding: 20px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .header-actions {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .batch-card {
-                padding: 16px;
-            }
-
-            .batch-name {
-                font-size: 16px;
-            }
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Batches</h1>
-            <div class="header-actions">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="includeArchived">
-                    <label for="includeArchived">Show archived</label>
-                </div>
-                <button class="btn btn-secondary" onclick="logout()">Logout</button>
-                <button class="btn btn-secondary" onclick="window.location.href='/static/users.html'">Users</button>
-                <button class="btn btn-secondary" onclick="window.location.href='/static/rules.html'">Rules</button>
-                <button class="btn btn-primary" onclick="showUploadModal()">Upload CSV</button>
+<body class="min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-xl p-4 mb-4 shadow-lg flex flex-wrap justify-between items-center gap-3">
+            <h1 class="text-xl font-bold text-gray-800">Batches</h1>
+            <div class="flex flex-wrap gap-2 items-center">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="includeArchived" class="w-4 h-4 text-brand-500 bg-gray-100 border-gray-300 rounded focus:ring-brand-500">
+                    <span class="text-sm text-gray-700">Show archived</span>
+                </label>
+                <button onclick="logout()" class="px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                    Logout
+                </button>
+                <button onclick="window.location.href='/static/users.html'" class="px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                    Users
+                </button>
+                <button onclick="window.location.href='/static/rules.html'" class="px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                    Rules
+                </button>
+                <button data-modal-target="uploadModal" data-modal-toggle="uploadModal" class="px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg transition-all">
+                    Upload CSV
+                </button>
             </div>
         </div>
 
-        <div id="batchList" class="batch-list">
-            <div class="loading">Loading batches...</div>
+        <!-- Batch List -->
+        <div id="batchList" class="space-y-3">
+            <div class="text-center py-12 text-white">Loading batches...</div>
         </div>
     </div>
 
     <!-- Upload Modal -->
-    <div class="modal" id="uploadModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">Upload CSV</div>
-                <button class="modal-close" onclick="closeUploadModal()">×</button>
-            </div>
-            <form id="uploadForm" onsubmit="handleUpload(event)">
-                <div class="form-group">
-                    <label for="batchName">Batch Name</label>
-                    <input type="text" id="batchName" name="batchName" required placeholder="e.g., November 2024">
+    <div id="uploadModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative bg-white rounded-xl shadow-xl">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Upload CSV</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-100 hover:text-gray-700 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center" data-modal-hide="uploadModal">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label for="csvFile">CSV File</label>
-                    <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
-                    <div class="upload-info">
-                        Supports AceMoney (latin-1) and Danske Bank (UTF-8) formats<br>
-                        <small style="color: #999;">Use the file picker to browse for files. Files with spaces in names are supported.</small>
+                <!-- Modal Body -->
+                <form id="uploadForm" onsubmit="handleUpload(event)" class="p-4 space-y-4">
+                    <div>
+                        <label for="batchName" class="block text-sm font-semibold text-gray-700 mb-1">Batch Name</label>
+                        <input type="text" id="batchName" name="batchName" required placeholder="e.g., November 2024"
+                               class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 transition-colors">
                     </div>
-                </div>
-                <div id="uploadError" class="error-text" style="display: none;"></div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="uploadButton">Upload</button>
-                </div>
-            </form>
+                    <div>
+                        <label for="csvFile" class="block text-sm font-semibold text-gray-700 mb-1">CSV File</label>
+                        <input type="file" id="csvFile" name="csvFile" accept=".csv" required
+                               class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-500 file:text-white hover:file:bg-brand-600 cursor-pointer">
+                        <p class="text-xs text-gray-400 mt-1">Supports AceMoney (latin-1) and Danske Bank (UTF-8) formats</p>
+                    </div>
+                    <div id="uploadError" class="hidden p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm"></div>
+                    <div class="flex gap-2 justify-end pt-2">
+                        <button type="button" data-modal-hide="uploadModal" class="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" id="uploadButton" class="px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg transition-all">
+                            Upload
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <script src="/static/js/toast.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
     <script>
         let includeArchived = false;
+        let uploadModal = null;
 
-        // Load batches on page load
+        // Initialize modal after Flowbite loads
         window.addEventListener('DOMContentLoaded', () => {
             loadBatches();
+
+            // Get modal instance
+            const $targetEl = document.getElementById('uploadModal');
+            uploadModal = new Modal($targetEl);
 
             // Handle archive checkbox
             document.getElementById('includeArchived').addEventListener('change', (e) => {
@@ -425,9 +167,9 @@
             } catch (error) {
                 console.error('Error loading batches:', error);
                 document.getElementById('batchList').innerHTML = `
-                    <div class="empty-state">
-                        <h2>Error loading batches</h2>
-                        <p>Please try refreshing the page</p>
+                    <div class="bg-white rounded-xl p-8 text-center shadow-lg">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">Error loading batches</h2>
+                        <p class="text-gray-500 text-sm">Please try refreshing the page</p>
                     </div>
                 `;
             }
@@ -438,53 +180,48 @@
 
             if (batches.length === 0) {
                 batchList.innerHTML = `
-                    <div class="empty-state">
-                        <h2>No batches yet</h2>
-                        <p>Upload a CSV file to get started</p>
+                    <div class="bg-white rounded-xl p-8 text-center shadow-lg">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">No batches yet</h2>
+                        <p class="text-gray-500 text-sm">Upload a CSV file to get started</p>
                     </div>
                 `;
                 return;
             }
 
             batchList.innerHTML = batches.map(batch => `
-                <div class="batch-card ${batch.status === 'archived' ? 'archived' : ''}"
+                <div class="bg-white rounded-xl p-4 shadow-lg cursor-pointer transition-all hover:shadow-xl hover:-translate-y-0.5 ${batch.status === 'archived' ? 'opacity-70' : ''}"
                      onclick="openBatch(${batch.id})">
-                    <div class="batch-header">
+                    <div class="flex justify-between items-start mb-3">
                         <div>
-                            <div class="batch-name">${escapeHtml(batch.name)}</div>
-                            <div class="batch-meta">
-                                ${batch.date_range_start} to ${batch.date_range_end}
-                            </div>
+                            <div class="text-base font-semibold text-gray-800 mb-1">${escapeHtml(batch.name)}</div>
+                            <div class="text-xs text-gray-500">${batch.date_range_start} to ${batch.date_range_end}</div>
                         </div>
-                        <span class="batch-status status-${batch.status.replace('_', '-')}">
-                            ${batch.status === 'in_progress' ? 'In Progress' : 'Archived'}
+                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${batch.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}">
+                            ${batch.status === 'in_progress' ? 'In Progress' : batch.status === 'complete' ? 'Complete' : 'Archived'}
                         </span>
                     </div>
-                    <div class="progress-section">
-                        <div class="progress-text">
+                    <div class="mb-3">
+                        <div class="flex justify-between text-xs text-gray-500 mb-1">
                             <span>${batch.categorized_count}/${batch.total_count} categorized</span>
                             <span>${batch.progress_percent.toFixed(0)}%</span>
                         </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${batch.progress_percent}%"></div>
+                        <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full progress-gradient transition-all" style="width: ${batch.progress_percent}%"></div>
                         </div>
                     </div>
-                    <div class="batch-actions">
+                    <div class="flex gap-2" onclick="event.stopPropagation()">
                         ${batch.status === 'in_progress' ? `
                             <button onclick="archiveBatch(event, ${batch.id}, '${escapeHtml(batch.name)}')"
-                                    class="btn btn-secondary btn-sm"
-                                    title="Archive batch">
+                                    class="px-2.5 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
                                 Archive
                             </button>
                         ` : ''}
                         <button onclick="downloadBatch(event, ${batch.id}, '${escapeHtml(batch.name)}', '${batch.status}')"
-                                class="btn btn-primary btn-sm"
-                                title="Download as CSV (AceMoney format)">
+                                class="px-2.5 py-1.5 text-xs font-semibold text-white btn-gradient rounded-lg transition-all">
                             Download
                         </button>
                         <button onclick="deleteBatch(event, ${batch.id}, '${escapeHtml(batch.name)}', ${batch.total_count})"
-                                class="btn btn-danger btn-sm"
-                                title="Delete batch">
+                                class="px-2.5 py-1.5 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
                             Delete
                         </button>
                     </div>
@@ -497,10 +234,8 @@
         }
 
         async function deleteBatch(event, batchId, batchName, totalCount) {
-            // Prevent the batch card click event from firing
             event.stopPropagation();
 
-            // Confirm deletion with transaction count
             const message = `Delete batch "${batchName}"?\n\nThis will permanently delete all ${totalCount} transaction${totalCount !== 1 ? 's' : ''}.`;
             if (!confirm(message)) {
                 return;
@@ -522,7 +257,6 @@
                 }
 
                 toast.success('Batch deleted successfully');
-                // Reload batches to reflect the deletion
                 loadBatches();
             } catch (error) {
                 console.error('Delete error:', error);
@@ -531,10 +265,8 @@
         }
 
         async function archiveBatch(event, batchId, batchName) {
-            // Prevent the batch card click event from firing
             event.stopPropagation();
 
-            // Confirm archive
             const message = `Archive batch "${batchName}"?\n\nThis will mark the batch as complete and move it to archived batches.`;
             if (!confirm(message)) {
                 return;
@@ -556,7 +288,6 @@
                 }
 
                 toast.success('Batch archived successfully');
-                // Reload batches to reflect the change
                 loadBatches();
             } catch (error) {
                 console.error('Archive error:', error);
@@ -565,10 +296,8 @@
         }
 
         async function downloadBatch(event, batchId, batchName, batchStatus) {
-            // Prevent the batch card click event from firing
             event.stopPropagation();
 
-            // Warn if downloading in-progress batch
             if (batchStatus === 'in_progress') {
                 const confirmed = confirm(
                     `Download "${batchName}" while still in progress?\n\n` +
@@ -593,40 +322,22 @@
                     throw new Error(error.detail || 'Failed to download batch');
                 }
 
-                // Get the blob from response
                 const blob = await response.blob();
-
-                // Create download link
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `${batchName.replace(/[^a-zA-Z0-9-_]/g, '_')}.csv`;
                 document.body.appendChild(a);
                 a.click();
-
-                // Cleanup
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
 
                 toast.success('Batch downloaded successfully');
-
-                // Reload batches (completed batches are auto-archived after download)
                 loadBatches();
             } catch (error) {
                 console.error('Download error:', error);
                 toast.error(error.message || 'Failed to download batch');
             }
-        }
-
-        function showUploadModal() {
-            document.getElementById('uploadModal').classList.add('visible');
-            document.getElementById('batchName').value = '';
-            document.getElementById('csvFile').value = '';
-            document.getElementById('uploadError').style.display = 'none';
-        }
-
-        function closeUploadModal() {
-            document.getElementById('uploadModal').classList.remove('visible');
         }
 
         async function handleUpload(event) {
@@ -640,14 +351,13 @@
 
             if (!file) {
                 errorDiv.textContent = 'Please select a CSV file';
-                errorDiv.style.display = 'block';
+                errorDiv.classList.remove('hidden');
                 return;
             }
 
-            // Disable button and show loading state
             uploadButton.disabled = true;
-            uploadButton.classList.add('loading');
-            errorDiv.style.display = 'none';
+            uploadButton.classList.add('btn-loading');
+            errorDiv.classList.add('hidden');
 
             try {
                 const formData = new FormData();
@@ -666,19 +376,18 @@
                 }
 
                 const batch = await response.json();
-
-                // Show success and redirect
                 toast.success(`Batch "${batch.name}" uploaded successfully!`);
-                closeUploadModal();
+                uploadModal.hide();
+                document.getElementById('uploadForm').reset();
                 setTimeout(() => {
                     window.location.href = `/static/categorize.html?batch=${batch.id}`;
                 }, 500);
             } catch (error) {
                 console.error('Upload error:', error);
                 errorDiv.textContent = error.message || 'Failed to upload CSV. Please try again.';
-                errorDiv.style.display = 'block';
+                errorDiv.classList.remove('hidden');
                 uploadButton.disabled = false;
-                uploadButton.classList.remove('loading');
+                uploadButton.classList.remove('btn-loading');
             }
         }
 
