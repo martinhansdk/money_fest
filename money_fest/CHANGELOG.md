@@ -2,6 +2,13 @@
 
 All notable changes to this add-on will be documented in this file.
 
+## [1.0.12] - 2026-06-12
+
+### Added
+- Clear (×) button on the pattern field in the categorize panel — clears the scope back to just the clicked transaction
+- Global skip-word list for pattern suggestions, editable via the new ⚙ Settings dialog on the categorize page: the suggested pattern is the first payee word not in the list
+- Global `app_settings` table and `/settings` API (created automatically on startup)
+
 ## [1.0.11] - 2026-06-12
 
 ### Changed

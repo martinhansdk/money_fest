@@ -9,14 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, batches, transactions, categories, rules, websocket, similar, setup, users
+from app.routers import auth, batches, transactions, categories, rules, websocket, similar, setup, users, app_settings
 
 
 # Create FastAPI application
 app = FastAPI(
     title="Money Fest",
     description="Collaborative Bank Transaction Categorizer",
-    version="1.0.11"
+    version="1.0.12"
 )
 
 
@@ -38,6 +38,7 @@ app.include_router(batches.router, prefix="/batches", tags=["batches"])
 app.include_router(transactions.router, tags=["transactions"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(rules.router, prefix="/rules", tags=["rules"])
+app.include_router(app_settings.router, prefix="/settings", tags=["settings"])
 app.include_router(similar.router, tags=["similar"])
 app.include_router(websocket.router, tags=["websocket"])
 

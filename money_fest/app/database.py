@@ -136,6 +136,14 @@ def init_db() -> None:
             )
         """)
 
+        # Table 6: app_settings (global key-value settings)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+
         # Indexes for transactions table
         db.execute("""
             CREATE INDEX IF NOT EXISTS idx_transactions_batch_id
