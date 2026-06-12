@@ -2,6 +2,22 @@
 
 All notable changes to this add-on will be documented in this file.
 
+## [1.0.11] - 2026-06-12
+
+### Changed
+- Unified the three categorization flows (single transaction, similar transactions, rules) into one Categorize panel: a docked sidebar on wide screens, a bottom sheet on phones
+- Clicking a transaction shows pattern-based scope (with this batch/all batches toggle), fuzzy/amount/date expanders, category search with rule suggestions and frequent chips, note, and an optional "save as rule" — picking a category applies to everything in scope in one step
+- Keyboard flow: j/k to move between transactions, Enter applies the top category match, Ctrl+Enter also saves the rule, Esc closes; auto-advances to the next uncategorized transaction after applying
+- Rule preview matching moved into SQL: previews now consider all transactions instead of only the latest 100, and support batch scoping
+
+### Removed
+- Similar Transactions modal, Create Rule modal, and category drawer on the categorize page (replaced by the unified panel); hover-only row buttons that were unusable on touch devices
+
+## [1.0.10] - 2026-01-30
+
+### Added
+- Rule creation options and live preview of matching transactions
+
 ## [1.0.9] - 2026-01-30
 
 ### Changed

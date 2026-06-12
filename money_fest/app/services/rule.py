@@ -244,7 +244,9 @@ def get_matching_transactions_for_rule(
     db: sqlite3.Connection,
     user_id: int,
     pattern: str,
-    match_type: str
+    match_type: str,
+    batch_id: Optional[int] = None,
+    limit: int = 500
 ) -> List[dict]:
     """
     Preview which transactions would match a rule pattern
@@ -254,36 +256,34 @@ def get_matching_transactions_for_rule(
         user_id: ID of the user
         pattern: Pattern to match
         match_type: How to match - "contains" or "exact"
+        batch_id: Limit matches to one batch (None = all the user's batches)
+        limit: Maximum number of matches to return
 
     Returns:
-        List of matching transactions
+        List of matching transactions (each includes batch_name)
     """
-    # Get all transactions for user (from their batches)
-    cursor = db.execute(
-        """
-        SELECT t.* FROM transactions t
+    if match_type == 'exact':
+        payee_condition = "LOWER(t.payee) = LOWER(?)"
+        payee_param = pattern
+    else:
+        # LIKE special characters in the pattern must be escaped for a literal match
+        escaped = pattern.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+        payee_condition = "LOWER(t.payee) LIKE '%' || LOWER(?) || '%' ESCAPE '\\'"
+        payee_param = escaped
+
+    query = f"""
+        SELECT t.*, b.name AS batch_name FROM transactions t
         JOIN batches b ON t.batch_id = b.id
-        WHERE b.user_id = ?
-        ORDER BY t.date DESC
-        LIMIT 100
-        """,
-        (user_id,)
-    )
+        WHERE b.user_id = ? AND {payee_condition}
+    """
+    params: list = [user_id, payee_param]
 
-    transactions = [dict_from_row(row) for row in cursor.fetchall()]
+    if batch_id is not None:
+        query += " AND t.batch_id = ?"
+        params.append(batch_id)
 
-    # Filter transactions that match the pattern
-    matching = []
-    for transaction in transactions:
-        payee = transaction['payee']
+    query += " ORDER BY t.date DESC LIMIT ?"
+    params.append(limit)
 
-        matches = False
-        if match_type == 'contains':
-            matches = pattern.lower() in payee.lower()
-        elif match_type == 'exact':
-            matches = pattern.lower() == payee.lower()
-
-        if matches:
-            matching.append(transaction)
-
-    return matching
+    cursor = db.execute(query, params)
+    return [dict_from_row(row) for row in cursor.fetchall()]

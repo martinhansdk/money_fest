@@ -13,7 +13,7 @@ from app.models import (
     RuleResponse,
     RuleSuggestion,
     RulePreviewRequest,
-    TransactionResponse
+    RulePreviewTransaction
 )
 from app.auth import get_current_user
 from app.services.rule import (
@@ -196,7 +196,7 @@ def get_rule_suggestions(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.post("/preview", response_model=List[TransactionResponse])
+@router.post("/preview", response_model=List[RulePreviewTransaction])
 def preview_rule_matches(
     preview_request: RulePreviewRequest,
     db: sqlite3.Connection = Depends(get_db),
@@ -206,7 +206,7 @@ def preview_rule_matches(
     Preview which transactions would match a rule pattern
 
     Args:
-        preview_request: Pattern and match_type to preview
+        preview_request: Pattern, match_type and optional batch_id to preview
 
     Returns:
         List of transactions that match the pattern
@@ -215,7 +215,8 @@ def preview_rule_matches(
         db,
         user['id'],
         preview_request.pattern,
-        preview_request.match_type
+        preview_request.match_type,
+        batch_id=preview_request.batch_id
     )
 
     return matching_transactions

@@ -16,7 +16,7 @@ from app.routers import auth, batches, transactions, categories, rules, websocke
 app = FastAPI(
     title="Money Fest",
     description="Collaborative Bank Transaction Categorizer",
-    version="0.1.0"
+    version="1.0.11"
 )
 
 

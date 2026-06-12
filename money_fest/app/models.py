@@ -158,3 +158,9 @@ class RulePreviewRequest(BaseModel):
     """Request to preview which transactions match a rule pattern"""
     pattern: str = Field(..., min_length=1)
     match_type: str = Field(..., pattern="^(contains|exact)$")
+    batch_id: Optional[int] = Field(None, description="Limit matches to one batch (None = all batches)")
+
+
+class RulePreviewTransaction(TransactionResponse):
+    """Transaction in a rule preview, with its batch name for cross-batch previews"""
+    batch_name: Optional[str] = None
